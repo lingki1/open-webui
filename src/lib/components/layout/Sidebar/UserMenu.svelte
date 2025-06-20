@@ -8,7 +8,6 @@
 
 	import { getUsage } from '$lib/apis';
 	import { userSignOut } from '$lib/apis/auths';
-	import { getActiveUsersWithDetails } from '$lib/apis/users';
 
 	import { showSettings, mobile, showSidebar, user } from '$lib/stores';
 
@@ -31,12 +30,10 @@
 	export let className = 'max-w-[240px]';
 
 	let showShortcuts = false;
-	let showActiveUsers = false;
-	let activeUsersDetails = { users: [] };
 
 	const dispatch = createEventDispatcher();
 
-	let usage = null;
+	let usage: any = null;
 	const getUsageInfo = async () => {
 		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
@@ -49,21 +46,8 @@
 		}
 	};
 
-	const getActiveUsersInfo = async () => {
-		if (role === 'admin') {
-			const res = await getActiveUsersWithDetails(localStorage.token).catch((error) => {
-				console.error('Error fetching active users details:', error);
-			});
-
-			if (res) {
-				activeUsersDetails = res;
-			}
-		}
-	};
-
 	$: if (show) {
 		getUsageInfo();
-		getActiveUsersInfo();
 	}
 </script>
 
@@ -88,6 +72,7 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
+			<!-- Settings - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -105,6 +90,7 @@
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</button>
 
+			<!-- Archived Chats - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={() => {
@@ -161,6 +147,7 @@
 			{#if help}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
+				<!-- Documentation - 只有admin可以看到 -->
 				{#if role === 'admin'}
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
@@ -174,6 +161,7 @@
 						<div class="flex items-center">{$i18n.t('Documentation')}</div>
 					</DropdownMenu.Item>
 
+					<!-- Releases - 只有admin可以看到 -->
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="menu-item-releases"
@@ -187,6 +175,7 @@
 					</DropdownMenu.Item>
 				{/if}
 
+				<!-- Keyboard shortcuts - 所有用户都可以看到 -->
 				<DropdownMenu.Item
 					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 					id="chat-share-button"
@@ -202,6 +191,7 @@
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
+			<!-- Sign Out - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -219,63 +209,46 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
-			{#if role === 'admin' && usage}
-				{#if usage?.user_ids?.length > 0}
+			<!-- Active Users - 只有admin可以看到，并显示详细的在线用户信息 -->
+			{#if usage && role === 'admin'}
+				{#if usage?.users && usage.users.length > 0}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<button
-						class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-						on:click={() => {
-							showActiveUsers = !showActiveUsers;
-							if (showActiveUsers) {
-								getActiveUsersInfo();
-							}
-						}}
-						on:mouseenter={() => {
-							getUsageInfo();
-							getActiveUsersInfo();
-						}}
+					<Tooltip
+						content={usage?.model_ids && usage?.model_ids.length > 0
+							? `${$i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
+							: `${$i18n.t('Active Users')}: ${usage.users.map(u => u.name).join(', ')}`}
 					>
-						<div class=" flex items-center">
-							<span class="relative flex size-2">
-								<span
-									class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-								/>
-								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-							</span>
-						</div>
+						<div
+							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
+							on:mouseenter={() => {
+								getUsageInfo();
+							}}
+						>
+							<div class=" flex items-center">
+								<span class="relative flex size-2">
+									<span
+										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+									/>
+									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+								</span>
+							</div>
 
-						<div class="flex-1">
-							<span class="">
-								{$i18n.t('Active Users')}:
-							</span>
-							<span class=" font-semibold">
-								{usage?.user_ids?.length}
-							</span>
-						</div>
-
-						<div class="text-xs text-gray-500">
-							{showActiveUsers ? '▲' : '▼'}
-						</div>
-					</button>
-
-					{#if showActiveUsers && activeUsersDetails?.users?.length > 0}
-						<div class="border-l-2 border-gray-200 dark:border-gray-600 ml-3 mt-1">
-							{#each activeUsersDetails.users as activeUser}
-								<div class="flex items-center gap-2 py-1 px-3 ml-2 text-xs">
-									<div class="flex items-center gap-2">
-										<img
-											src={activeUser.profile_image_url}
-											class="size-4 object-cover rounded-full"
-											alt="User profile"
-										/>
-										<span class="font-medium">{activeUser.name}</span>
-										<span class="text-green-500 size-2 rounded-full bg-green-500"></span>
+							<div class=" ">
+								<span class="">
+									{$i18n.t('Active Users')}:
+								</span>
+								<span class=" font-semibold">
+									{usage?.users?.length || 0}
+								</span>
+								{#if usage?.users && usage.users.length > 0}
+									<div class="text-xs text-gray-500 mt-1 max-w-[200px] truncate">
+										{usage.users.map(u => u.name).join(', ')}
 									</div>
-								</div>
-							{/each}
+								{/if}
+							</div>
 						</div>
-					{/if}
+					</Tooltip>
 				{/if}
 			{/if}
 
