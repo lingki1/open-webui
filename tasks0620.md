@@ -104,3 +104,28 @@
   - UI 友好，支持多用户场景的清晰展示
 
   **状态：已完成 ✅**
+
+## 📋 权限控制更新
+
+### Active Users 权限限制 (2024-12-20)
+
+**目标**：限制 UserMenu 中的 Active Users 功能，只有 admin 用户可以看到在线用户信息。
+
+**实现：**
+- [x] 修改 `src/lib/components/layout/Sidebar/UserMenu.svelte` 中的 API 调用逻辑
+- [x] 添加角色权限检查：`if (role === 'admin')` 才调用 `getActiveUsersInfo()`
+- [x] 修改显示逻辑：`{#if role === 'admin' && (activeUsers?.length > 0 || ...)}`
+- [x] 添加数据清理：非 admin 用户的 `activeUsers` 数组自动清空
+- [x] 双重保护：API 层面和 UI 层面都有权限检查
+
+**权限控制效果：**
+- **Admin 用户**：完整的 Active Users 功能，可以看到在线用户列表、头像、用户名、数量
+- **User 用户**：完全看不到 Active Users 相关信息
+- **Premium 用户**：完全看不到 Active Users 相关信息
+
+**安全措施：**
+- API 调用权限控制：只有 admin 才会调用后端 API
+- 前端显示权限控制：只有 admin 才会渲染 Active Users 组件
+- 数据清理机制：非 admin 用户的残留数据会被清空
+
+**状态：已完成 ✅**

@@ -63,7 +63,11 @@
 
 	$: if (show) {
 		getUsageInfo();
-		getActiveUsersInfo();
+		if (role === 'admin') {
+			getActiveUsersInfo();
+		} else {
+			activeUsers = [];
+		}
 	}
 </script>
 
@@ -241,8 +245,8 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
-			<!-- Active Users Display -->
-			{#if activeUsers?.length > 0 || (usage?.user_ids?.length > 0)}
+			<!-- Active Users Display - Only for Admin -->
+			{#if role === 'admin' && (activeUsers?.length > 0 || (usage?.user_ids?.length > 0))}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
 				<div class="py-2 px-3">
