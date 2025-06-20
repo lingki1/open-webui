@@ -219,4 +219,54 @@ POST /users/default/permissions/{role}  - 更新指定角色的默认权限
 
 **结果**：✅ 成功实现了复杂的角色权限分离系统，admin可以为user和premium用户分别设定完全不同的默认权限。
 
+### 权限持久化问题修复
+
+**问题**：❌ 用户反映权限设置保存后，重新打开会被撤销，回到固定的权限配置。
+
+**根本原因分析**：
+1. **配置未持久化**：新增的`ROLE_PERMISSIONS`没有使用`PersistentConfig`机制
+2. **API赋值错误**：直接使用`hasattr/getattr`而非`AppConfig`的赋值机制
+3. **数据不保存**：配置变更没有触发数据库保存操作
+
+**修复措施**：
+
+1. **添加持久化配置** (`backend/open_webui/config.py`)：
+   ```python
+   DEFAULT_ROLE_PERMISSIONS = {
+       "user": DEFAULT_USER_PERMISSIONS,
+       "premium": DEFAULT_USER_PERMISSIONS,
+   }
+   
+   ROLE_PERMISSIONS = PersistentConfig(
+       "ROLE_PERMISSIONS",
+       "user.role_permissions", 
+       DEFAULT_ROLE_PERMISSIONS,
+   )
+   ```
+
+2. **修复API保存机制** (`backend/open_webui/routers/users.py`)：
+   - 使用`request.app.state.config.ROLE_PERMISSIONS = value`触发`AppConfig.__setattr__`
+   - 自动调用`.save()`方法保存到数据库
+   - 移除不安全的`hasattr/getattr`用法
+
+3. **改进权限获取逻辑**：
+   - 统一使用`request.app.state.config.ROLE_PERMISSIONS`
+   - 确保所有API都使用正确的PersistentConfig访问方式
+
+4. **前端优化** (`src/lib/components/admin/Users/Groups.svelte`)：
+   - 增加详细的错误处理和调试日志
+   - 改进`loadRolePermissions`函数的可靠性
+
+**技术机制**：
+- `PersistentConfig`使用数据库表`config`存储JSON配置
+- `AppConfig.__setattr__`检测赋值操作并自动调用`.save()`
+- 配置路径：`user.role_permissions` → 数据库持久化
+
+**验证方法**：
+1. 设置user/premium权限 → 保存成功
+2. 重启应用 → 配置保持不变
+3. 检查数据库`config`表 → 包含`user.role_permissions`数据
+
+**修复结果**：✅ 权限配置现在能够正确持久化，不会在重启后被重置。
+
 ---

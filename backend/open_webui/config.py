@@ -1194,6 +1194,18 @@ USER_PERMISSIONS = PersistentConfig(
     DEFAULT_USER_PERMISSIONS,
 )
 
+# Role-based permissions configuration
+DEFAULT_ROLE_PERMISSIONS = {
+    "user": DEFAULT_USER_PERMISSIONS,
+    "premium": DEFAULT_USER_PERMISSIONS,
+}
+
+ROLE_PERMISSIONS = PersistentConfig(
+    "ROLE_PERMISSIONS",
+    "user.role_permissions",
+    DEFAULT_ROLE_PERMISSIONS,
+)
+
 ENABLE_CHANNELS = PersistentConfig(
     "ENABLE_CHANNELS",
     "channels.enable",
@@ -1439,7 +1451,7 @@ FOLLOW_UP_GENERATION_PROMPT_TEMPLATE = PersistentConfig(
 DEFAULT_FOLLOW_UP_GENERATION_PROMPT_TEMPLATE = """### Task:
 Suggest 3-5 relevant follow-up questions or prompts that the user might naturally ask next in this conversation as a **user**, based on the chat history, to help continue or deepen the discussion.
 ### Guidelines:
-- Write all follow-up questions from the user’s point of view, directed to the assistant.
+- Write all follow-up questions from the user's point of view, directed to the assistant.
 - Make questions concise, clear, and directly related to the discussed topic(s).
 - Only suggest follow-ups that make sense given the chat content and do not repeat what was already covered.
 - If the conversation is very short or not specific, suggest more general (but relevant) follow-ups the user might ask.

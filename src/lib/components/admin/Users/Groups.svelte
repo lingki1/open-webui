@@ -195,26 +195,27 @@
 	};
 
 	const loadRolePermissions = async () => {
-		// Load user permissions
-		const userPerms = await getRoleDefaultPermissions(localStorage.token, 'user').catch(
-			(error) => {
-				console.error('Error loading user permissions:', error);
-				return null;
+		try {
+			// Load user permissions
+			const userPerms = await getRoleDefaultPermissions(localStorage.token, 'user');
+			if (userPerms) {
+				userDefaultPermissions = userPerms;
+				console.log('Loaded user permissions:', userPerms);
+			} else {
+				console.warn('Failed to load user permissions, using defaults');
 			}
-		);
-		if (userPerms) {
-			userDefaultPermissions = userPerms;
-		}
 
-		// Load premium permissions
-		const premiumPerms = await getRoleDefaultPermissions(localStorage.token, 'premium').catch(
-			(error) => {
-				console.error('Error loading premium permissions:', error);
-				return null;
+			// Load premium permissions
+			const premiumPerms = await getRoleDefaultPermissions(localStorage.token, 'premium');
+			if (premiumPerms) {
+				premiumDefaultPermissions = premiumPerms;
+				console.log('Loaded premium permissions:', premiumPerms);
+			} else {
+				console.warn('Failed to load premium permissions, using defaults');
 			}
-		);
-		if (premiumPerms) {
-			premiumDefaultPermissions = premiumPerms;
+		} catch (error) {
+			console.error('Error loading role permissions:', error);
+			toast.error($i18n.t('Failed to load role permissions'));
 		}
 	};
 

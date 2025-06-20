@@ -1426,5 +1426,6 @@
 	"Default permissions for users with \"user\" role": "",
 	"Default permissions for users with \"premium\" role": "",
 	"User default permissions updated successfully": "",
-	"Premium default permissions updated successfully": ""
+	"Premium default permissions updated successfully": "",
+	"Failed to load role permissions": ""
 }
