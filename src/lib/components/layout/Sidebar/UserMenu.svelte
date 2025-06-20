@@ -72,6 +72,11 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
+			<!-- 用户角色显示 -->
+			<div class="px-3 py-2 text-xs text-gray-500 border-b border-gray-100 dark:border-gray-800 mb-1">
+				<span class="uppercase font-medium tracking-wider">{role || 'user'}</span>
+			</div>
+
 			<!-- Settings - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
@@ -214,41 +219,34 @@
 				{#if usage?.users && usage.users.length > 0}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<Tooltip
-						content={usage?.model_ids && usage?.model_ids.length > 0
-							? `${$i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
-							: `${$i18n.t('Active Users')}: ${usage.users.map(u => u.name).join(', ')}`}
-					>
-						<div
-							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
-							on:mouseenter={() => {
-								getUsageInfo();
-							}}
-						>
-							<div class=" flex items-center">
-								<span class="relative flex size-2">
-									<span
-										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-									/>
-									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-								</span>
-							</div>
-
-							<div class=" ">
-								<span class="">
-									{$i18n.t('Active Users')}:
-								</span>
-								<span class=" font-semibold">
-									{usage?.users?.length || 0}
-								</span>
-								{#if usage?.users && usage.users.length > 0}
-									<div class="text-xs text-gray-500 mt-1 max-w-[200px] truncate">
-										{usage.users.map(u => u.name).join(', ')}
-									</div>
-								{/if}
-							</div>
+					<div class="px-3 py-1">
+						<div class="flex items-center gap-2 mb-2">
+							<span class="relative flex size-2">
+								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+							</span>
+							<span class="text-xs font-medium">在线用户 ({usage?.users?.length || 0})</span>
 						</div>
-					</Tooltip>
+						
+						<!-- 在线用户列表 - 最多显示5个，超过则滚动 -->
+						<div class="max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+							{#each usage.users as user, index}
+								<div class="flex items-center gap-2 py-1 px-2 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+									<div class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
+									<span class="truncate flex-1">{user.name}</span>
+									<span class="text-gray-400 text-xs">{user.id.slice(0, 4)}</span>
+								</div>
+							{/each}
+						</div>
+						
+						{#if usage?.model_ids && usage.model_ids.length > 0}
+							<div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+								<div class="text-xs text-gray-500">
+									<span class="font-medium">运行中模型:</span> {usage.model_ids.join(', ')}
+								</div>
+							</div>
+						{/if}
+					</div>
 				{/if}
 			{/if}
 
