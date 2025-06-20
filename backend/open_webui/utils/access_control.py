@@ -7,6 +7,23 @@ from open_webui.config import DEFAULT_USER_PERMISSIONS
 import json
 
 
+def get_role_based_permissions(user_id: str, role_permissions_config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Get default permissions based on user role from role-based configuration.
+    Falls back to general USER_PERMISSIONS if role-specific permissions don't exist.
+    """
+    user = Users.get_user_by_id(user_id)
+    if not user:
+        return DEFAULT_USER_PERMISSIONS
+    
+    user_role = user.role
+    if user_role in ["user", "premium"]:
+        return role_permissions_config.get(user_role, role_permissions_config.get("user", DEFAULT_USER_PERMISSIONS))
+    
+    # For admin and other roles, use default permissions
+    return DEFAULT_USER_PERMISSIONS
+
+
 def fill_missing_permissions(
     permissions: Dict[str, Any], default_permissions: Dict[str, Any]
 ) -> Dict[str, Any]:

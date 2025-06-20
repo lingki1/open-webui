@@ -129,3 +129,94 @@
 - 数据清理机制：非 admin 用户的残留数据会被清空
 
 **状态：已完成 ✅**
+
+## 任务5：Admin Panel - 角色权限分离系统
+**状态**：✅ **已完成**
+
+**目标**：在admin panel的用户组默认权限设置中，为user和premium用户分别设定不同的权限。
+
+### 后端实现
+
+#### 新增API端点
+```
+GET  /users/default/permissions/{role}  - 获取指定角色的默认权限
+POST /users/default/permissions/{role}  - 更新指定角色的默认权限
+```
+
+**文件修改**：`backend/open_webui/routers/users.py`
+- 添加`get_default_permissions_by_role`函数
+- 添加`update_default_permissions_by_role`函数
+- 支持角色验证（只允许user、premium）
+- 使用`ROLE_PERMISSIONS`配置存储按角色的权限
+- 保持向后兼容的现有API
+
+#### 权限应用逻辑修改
+**文件修改**：`backend/open_webui/utils/access_control.py`
+- 添加`get_role_based_permissions`函数
+- 根据用户角色自动获取对应的权限配置
+
+**文件修改**：`backend/open_webui/routers/users.py`
+- 修改`get_user_permissisions`函数
+- 根据用户角色（user/premium）获取对应的默认权限
+- admin用户继续使用通用权限
+
+### 前端实现
+
+#### API函数
+**文件修改**：`src/lib/apis/users/index.ts`
+- 添加`getRoleDefaultPermissions(token, role)`函数
+- 添加`updateRoleDefaultPermissions(token, role, permissions)`函数
+
+#### 用户界面
+**文件修改**：`src/lib/components/admin/Users/Groups.svelte`
+
+**主要修改**：
+1. **数据结构**：
+   - `userDefaultPermissions` - User角色权限
+   - `premiumDefaultPermissions` - Premium角色权限
+   - 分离的模态框状态：`showUserPermissionsModal`、`showPremiumPermissionsModal`
+
+2. **处理函数**：
+   - `updateUserPermissionsHandler` - 更新User权限
+   - `updatePremiumPermissionsHandler` - 更新Premium权限
+   - `loadRolePermissions` - 加载两套权限配置
+
+3. **UI界面**：
+   - 两个独立的权限设置按钮
+   - User角色：绿色图标主题
+   - Premium角色：橙色图标主题
+   - 各自的模态框和处理流程
+
+#### 多语言支持
+**文件修改**：`src/lib/i18n/locales/en-US/translation.json`
+- `"User role permissions"`
+- `"Premium role permissions"`
+- `"Default permissions for users with \"user\" role"`
+- `"Default permissions for users with \"premium\" role"`
+- `"User default permissions updated successfully"`
+- `"Premium default permissions updated successfully"`
+
+### 技术特性
+
+1. **角色隔离**：User和Premium有完全独立的权限配置
+2. **灵活配置**：管理员可以为每个角色设置不同的工作空间、共享、聊天和功能权限
+3. **自动应用**：系统自动根据用户角色应用对应的权限设置
+4. **向后兼容**：现有的权限API继续工作，不影响现有功能
+5. **用户体验**：直观的双按钮界面，清晰的角色区分
+6. **错误处理**：完善的错误处理和用户反馈
+
+### 权限范围
+支持的权限类别：
+- **Workspace**: models, knowledge, prompts, tools
+- **Sharing**: public_models, public_knowledge, public_prompts, public_tools  
+- **Chat**: controls, system_prompt, file_upload, delete, edit, share, export, stt, tts, call, multiple_models, temporary, temporary_enforced
+- **Features**: direct_tool_servers, web_search, image_generation, code_interpreter, notes
+
+### 数据存储
+- 配置存储：`request.app.state.config.ROLE_PERMISSIONS`
+- 结构：`{"user": {...permissions}, "premium": {...permissions}}`
+- 后备机制：如角色权限不存在，回退到`USER_PERMISSIONS`
+
+**结果**：✅ 成功实现了复杂的角色权限分离系统，admin可以为user和premium用户分别设定完全不同的默认权限。
+
+---

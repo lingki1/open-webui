@@ -26,7 +26,9 @@
 	import {
 		getUserDefaultPermissions,
 		getAllUsers,
-		updateUserDefaultPermissions
+		updateUserDefaultPermissions,
+		getRoleDefaultPermissions,
+		updateRoleDefaultPermissions
 	} from '$lib/apis/users';
 
 	const i18n = getContext('i18n');
@@ -50,7 +52,44 @@
 	});
 
 	let search = '';
-	let defaultPermissions = {
+	let userDefaultPermissions = {
+		workspace: {
+			models: false,
+			knowledge: false,
+			prompts: false,
+			tools: false
+		},
+		sharing: {
+			public_models: false,
+			public_knowledge: false,
+			public_prompts: false,
+			public_tools: false
+		},
+		chat: {
+			controls: true,
+			system_prompt: true,
+			file_upload: true,
+			delete: true,
+			edit: true,
+			share: true,
+			export: true,
+			stt: true,
+			tts: true,
+			call: true,
+			multiple_models: true,
+			temporary: true,
+			temporary_enforced: false
+		},
+		features: {
+			direct_tool_servers: false,
+			web_search: true,
+			image_generation: true,
+			code_interpreter: true,
+			notes: true
+		}
+	};
+
+	let premiumDefaultPermissions = {
 		workspace: {
 			models: false,
 			knowledge: false,
@@ -88,7 +127,8 @@
 	};
 
 	let showCreateGroupModal = false;
-	let showDefaultPermissionsModal = false;
+	let showUserPermissionsModal = false;
+	let showPremiumPermissionsModal = false;
 
 	const setGroups = async () => {
 		groups = await getGroups(localStorage.token);
@@ -118,7 +158,63 @@
 
 		if (res) {
 			toast.success($i18n.t('Default permissions updated successfully'));
-			defaultPermissions = await getUserDefaultPermissions(localStorage.token);
+			userDefaultPermissions = await getUserDefaultPermissions(localStorage.token);
+		}
+	};
+
+	const updateUserPermissionsHandler = async (group) => {
+		console.debug('Updating user permissions:', group.permissions);
+
+		const res = await updateRoleDefaultPermissions(localStorage.token, 'user', group.permissions).catch(
+			(error) => {
+				toast.error(`${error}`);
+				return null;
+			}
+		);
+
+		if (res) {
+			toast.success($i18n.t('User default permissions updated successfully'));
+			await loadRolePermissions();
+		}
+	};
+
+	const updatePremiumPermissionsHandler = async (group) => {
+		console.debug('Updating premium permissions:', group.permissions);
+
+		const res = await updateRoleDefaultPermissions(localStorage.token, 'premium', group.permissions).catch(
+			(error) => {
+				toast.error(`${error}`);
+				return null;
+			}
+		);
+
+		if (res) {
+			toast.success($i18n.t('Premium default permissions updated successfully'));
+			await loadRolePermissions();
+		}
+	};
+
+	const loadRolePermissions = async () => {
+		// Load user permissions
+		const userPerms = await getRoleDefaultPermissions(localStorage.token, 'user').catch(
+			(error) => {
+				console.error('Error loading user permissions:', error);
+				return null;
+			}
+		);
+		if (userPerms) {
+			userDefaultPermissions = userPerms;
+		}
+
+		// Load premium permissions
+		const premiumPerms = await getRoleDefaultPermissions(localStorage.token, 'premium').catch(
+			(error) => {
+				console.error('Error loading premium permissions:', error);
+				return null;
+			}
+		);
+		if (premiumPerms) {
+			premiumDefaultPermissions = premiumPerms;
 		}
 	};
 
@@ -139,7 +235,9 @@
 		}
 
 		await setGroups();
-		defaultPermissions = await getUserDefaultPermissions(localStorage.token);
+		
+		// Load role-based permissions instead of general default permissions
+		await loadRolePermissions();
 
 		loaded = true;
 	});
@@ -240,30 +338,67 @@
 
 		<hr class="mb-2 border-gray-100 dark:border-gray-850" />
 
+		<!-- User Default Permissions Modal -->
 		<GroupModal
-			bind:show={showDefaultPermissionsModal}
+			bind:show={showUserPermissionsModal}
 			tabs={['permissions']}
-			bind:permissions={defaultPermissions}
+			bind:permissions={userDefaultPermissions}
 			custom={false}
-			onSubmit={updateDefaultPermissionsHandler}
+			onSubmit={updateUserPermissionsHandler}
 		/>
 
+		<!-- Premium Default Permissions Modal -->
+		<GroupModal
+			bind:show={showPremiumPermissionsModal}
+			tabs={['permissions']}
+			bind:permissions={premiumDefaultPermissions}
+			custom={false}
+			onSubmit={updatePremiumPermissionsHandler}
+		/>
+
+		<!-- User Role Permissions Button -->
 		<button
-			class="flex items-center justify-between rounded-lg w-full transition pt-1"
+			class="flex items-center justify-between rounded-lg w-full transition pt-1 mb-2"
 			on:click={() => {
-				showDefaultPermissionsModal = true;
+				showUserPermissionsModal = true;
 			}}
 		>
 			<div class="flex items-center gap-2.5">
-				<div class="p-1.5 bg-black/5 dark:bg-white/10 rounded-full">
-					<UsersSolid className="size-4" />
+				<div class="p-1.5 bg-green-500/10 dark:bg-green-500/20 rounded-full">
+					<UsersSolid className="size-4 text-green-600 dark:text-green-400" />
 				</div>
 
 				<div class="text-left">
-					<div class=" text-sm font-medium">{$i18n.t('Default permissions')}</div>
+					<div class=" text-sm font-medium">{$i18n.t('User role permissions')}</div>
 
-					<div class="flex text-xs mt-0.5">
-						{$i18n.t('applies to all users with the "user" role')}
+					<div class="flex text-xs mt-0.5 text-gray-600 dark:text-gray-400">
+						{$i18n.t('Default permissions for users with "user" role')}
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<ChevronRight strokeWidth="2.5" />
+			</div>
+		</button>
+
+		<!-- Premium Role Permissions Button -->
+		<button
+			class="flex items-center justify-between rounded-lg w-full transition pt-1"
+			on:click={() => {
+				showPremiumPermissionsModal = true;
+			}}
+		>
+			<div class="flex items-center gap-2.5">
+				<div class="p-1.5 bg-orange-500/10 dark:bg-orange-500/20 rounded-full">
+					<UsersSolid className="size-4 text-orange-600 dark:text-orange-400" />
+				</div>
+
+				<div class="text-left">
+					<div class=" text-sm font-medium">{$i18n.t('Premium role permissions')}</div>
+
+					<div class="flex text-xs mt-0.5 text-gray-600 dark:text-gray-400">
+						{$i18n.t('Default permissions for users with "premium" role')}
 					</div>
 				</div>
 			</div>

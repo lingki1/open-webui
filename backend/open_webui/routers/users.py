@@ -120,10 +120,21 @@ async def get_user_groups(user=Depends(get_verified_user)):
 
 @router.get("/permissions")
 async def get_user_permissisions(request: Request, user=Depends(get_verified_user)):
-    user_permissions = get_permissions(
-        user.id, request.app.state.config.USER_PERMISSIONS
-    )
-
+    # Get role-based permissions configuration
+    role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
+    
+    # Get user's role-specific default permissions
+    user_obj = Users.get_user_by_id(user.id)
+    if user_obj and user_obj.role in ["user", "premium"]:
+        default_permissions = role_permissions_config.get(
+            user_obj.role, 
+            getattr(request.app.state.config, 'USER_PERMISSIONS', {})
+        )
+    else:
+        # For admin and other roles, use general USER_PERMISSIONS
+        default_permissions = getattr(request.app.state.config, 'USER_PERMISSIONS', {})
+    
+    user_permissions = get_permissions(user.id, default_permissions)
     return user_permissions
 
 
@@ -199,6 +210,67 @@ async def update_default_user_permissions(
 ):
     request.app.state.config.USER_PERMISSIONS = form_data.model_dump()
     return request.app.state.config.USER_PERMISSIONS
+
+
+############################
+# Role-based Default Permissions
+############################
+
+@router.get("/default/permissions/{role}", response_model=UserPermissions)
+async def get_default_permissions_by_role(
+    role: str, request: Request, user=Depends(get_admin_user)
+):
+    """
+    Get default permissions for a specific role (user, premium).
+    """
+    if role not in ["user", "premium"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role. Must be 'user' or 'premium'."
+        )
+    
+    # Get role-based permissions or fall back to general USER_PERMISSIONS
+    role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
+    role_permissions = role_permissions_config.get(role, 
+                        getattr(request.app.state.config, 'USER_PERMISSIONS', {}))
+    
+    return {
+        "workspace": WorkspacePermissions(
+            **role_permissions.get("workspace", {})
+        ),
+        "sharing": SharingPermissions(
+            **role_permissions.get("sharing", {})
+        ),
+        "chat": ChatPermissions(
+            **role_permissions.get("chat", {})
+        ),
+        "features": FeaturesPermissions(
+            **role_permissions.get("features", {})
+        ),
+    }
+
+
+@router.post("/default/permissions/{role}")
+async def update_default_permissions_by_role(
+    role: str, request: Request, form_data: UserPermissions, user=Depends(get_admin_user)
+):
+    """
+    Update default permissions for a specific role (user, premium).
+    """
+    if role not in ["user", "premium"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role. Must be 'user' or 'premium'."
+        )
+    
+    # Initialize ROLE_PERMISSIONS if it doesn't exist
+    if not hasattr(request.app.state.config, 'ROLE_PERMISSIONS'):
+        request.app.state.config.ROLE_PERMISSIONS = {}
+    
+    # Update the role-specific permissions
+    request.app.state.config.ROLE_PERMISSIONS[role] = form_data.model_dump()
+    
+    return request.app.state.config.ROLE_PERMISSIONS[role]
 
 
 ############################
