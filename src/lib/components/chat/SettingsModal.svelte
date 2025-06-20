@@ -192,7 +192,7 @@
 			]
 		},
 		...($user?.role === 'admin' ||
-		($user?.role === 'user' && $config?.features?.enable_direct_connections)
+		(($user?.role === 'user' || $user?.role === 'premium') && $config?.features?.enable_direct_connections)
 			? [
 					{
 						id: 'connections',
@@ -211,7 +211,7 @@
 			: []),
 
 		...($user?.role === 'admin' ||
-		($user?.role === 'user' &&
+		(($user?.role === 'user' || $user?.role === 'premium') &&
 			$user?.permissions?.features?.direct_tool_servers &&
 			$config?.features?.direct_tool_servers)
 			? [

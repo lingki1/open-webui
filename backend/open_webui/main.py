@@ -533,57 +533,6 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(periodic_usage_pool_cleanup())
 
-    # Initialize connection pool
-    init_connection_pool()
-
-    app.state.config.USER_PERMISSIONS = USER_PERMISSIONS
-    
-    # Initialize role-based permissions if not already set
-    if "roles" not in app.state.config.USER_PERMISSIONS:
-        # Set premium role to have the same permissions as user role (current default)
-        default_role_permissions = {
-            "workspace": {
-                "models": USER_PERMISSIONS.get("workspace", {}).get("models", False),
-                "knowledge": USER_PERMISSIONS.get("workspace", {}).get("knowledge", False),
-                "prompts": USER_PERMISSIONS.get("workspace", {}).get("prompts", False),
-                "tools": USER_PERMISSIONS.get("workspace", {}).get("tools", False),
-            },
-            "sharing": {
-                "public_models": USER_PERMISSIONS.get("sharing", {}).get("public_models", True),
-                "public_knowledge": USER_PERMISSIONS.get("sharing", {}).get("public_knowledge", True),
-                "public_prompts": USER_PERMISSIONS.get("sharing", {}).get("public_prompts", True),
-                "public_tools": USER_PERMISSIONS.get("sharing", {}).get("public_tools", True),
-            },
-            "chat": {
-                "controls": USER_PERMISSIONS.get("chat", {}).get("controls", True),
-                "system_prompt": USER_PERMISSIONS.get("chat", {}).get("system_prompt", True),
-                "file_upload": USER_PERMISSIONS.get("chat", {}).get("file_upload", True),
-                "delete": USER_PERMISSIONS.get("chat", {}).get("delete", True),
-                "edit": USER_PERMISSIONS.get("chat", {}).get("edit", True),
-                "share": USER_PERMISSIONS.get("chat", {}).get("share", True),
-                "export": USER_PERMISSIONS.get("chat", {}).get("export", True),
-                "stt": USER_PERMISSIONS.get("chat", {}).get("stt", True),
-                "tts": USER_PERMISSIONS.get("chat", {}).get("tts", True),
-                "call": USER_PERMISSIONS.get("chat", {}).get("call", True),
-                "multiple_models": USER_PERMISSIONS.get("chat", {}).get("multiple_models", True),
-                "temporary": USER_PERMISSIONS.get("chat", {}).get("temporary", True),
-                "temporary_enforced": USER_PERMISSIONS.get("chat", {}).get("temporary_enforced", False),
-            },
-            "features": {
-                "direct_tool_servers": USER_PERMISSIONS.get("features", {}).get("direct_tool_servers", False),
-                "web_search": USER_PERMISSIONS.get("features", {}).get("web_search", True),
-                "image_generation": USER_PERMISSIONS.get("features", {}).get("image_generation", True),
-                "code_interpreter": USER_PERMISSIONS.get("features", {}).get("code_interpreter", True),
-                "notes": USER_PERMISSIONS.get("features", {}).get("notes", True),
-            },
-        }
-        
-        # Initialize roles with both user and premium having the same permissions
-        app.state.config.USER_PERMISSIONS["roles"] = {
-            "user": default_role_permissions.copy(),
-            "premium": default_role_permissions.copy()
-        }
-
     yield
 
     if hasattr(app.state, "redis_task_command_listener"):
@@ -1296,7 +1245,7 @@ async def get_models(request: Request, user=Depends(get_verified_user)):
         )
 
     # Filter out models that the user does not have access to
-    if user.role == "user" and not BYPASS_MODEL_ACCESS_CONTROL:
+    if user.role in ["user", "premium"] and not BYPASS_MODEL_ACCESS_CONTROL:
         models = get_filtered_models(models, user)
 
     log.debug(
@@ -1365,7 +1314,7 @@ async def chat_completion(
             model_info = Models.get_model_by_id(model_id)
 
             # Check if user has access to the model
-            if not BYPASS_MODEL_ACCESS_CONTROL and user.role == "user":
+            if not BYPASS_MODEL_ACCESS_CONTROL and user.role in ["user", "premium"]:
                 try:
                     check_model_access(user, model)
                 except Exception as e:
