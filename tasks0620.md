@@ -269,4 +269,55 @@ POST /users/default/permissions/{role}  - 更新指定角色的默认权限
 
 **修复结果**：✅ 权限配置现在能够正确持久化，不会在重启后被重置。
 
+## 🔧 权限保存对象引用问题修复 (2024-12-20)
+
+**问题描述**：❌ 发现user和premium角色权限设置互相影响，修改其中一个角色的权限时，另一个角色的权限也会同时改变。
+
+**根本原因**：
+在`backend/open_webui/config.py`中的`DEFAULT_ROLE_PERMISSIONS`配置，user和premium角色都引用了同一个`DEFAULT_USER_PERMISSIONS`对象：
+```python
+DEFAULT_ROLE_PERMISSIONS = {
+    "user": DEFAULT_USER_PERMISSIONS,     # 指向同一个对象
+    "premium": DEFAULT_USER_PERMISSIONS,  # 指向同一个对象
+}
+```
+
+这导致修改其中一个角色的权限时，实际上是在修改同一个内存对象，造成两个角色的权限都被同时修改。
+
+**修复方案**：
+为每个角色创建独立的权限对象副本，避免对象引用问题：
+
+```python
+# 为每个角色创建独立的权限字典副本，避免引用同一个对象
+DEFAULT_ROLE_PERMISSIONS = {
+    "user": json.loads(json.dumps(DEFAULT_USER_PERMISSIONS)),
+    "premium": json.loads(json.dumps(DEFAULT_USER_PERMISSIONS)),
+}
+```
+
+**修复文件**：`backend/open_webui/config.py`
+
+**验证测试**：
+```python
+# 测试结果
+User permissions object id: 2077297137984
+Premium permissions object id: 2077297138880
+Are they the same object? False  ✅ 确认为不同对象
+Are their contents equal? True   ✅ 初始内容相同
+Modification test passed: True   ✅ 修改隔离正常
+```
+
+**技术细节**：
+- 使用`json.loads(json.dumps())`创建深拷贝，确保完全独立
+- 保持配置结构和默认值不变，只修复对象引用问题
+- 不影响现有的PersistentConfig机制和数据库持久化
+
+**修复效果**：
+- ✅ User和Premium角色权限完全独立，互不影响
+- ✅ 管理员可以为两个角色设置完全不同的权限
+- ✅ 权限修改只影响目标角色，不会串扰
+- ✅ 保持所有现有功能和配置机制正常工作
+
+**状态**：✅ **已修复** - 权限配置对象引用问题已彻底解决
+
 ---
