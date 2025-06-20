@@ -22,7 +22,6 @@
 	import Code from '$lib/components/icons/Code.svelte';
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
-	import Badge from '$lib/components/common/Badge.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -91,11 +90,20 @@
 		>
 			<!-- User Role Display -->
 			{#if role}
-				<div class="flex items-center justify-center py-2 px-3 mb-1">
-					<Badge
-						type={role === 'admin' ? 'info' : role === 'premium' ? 'warning' : role === 'user' ? 'success' : 'muted'}
-						content={$i18n.t(role.charAt(0).toUpperCase() + role.slice(1))}
-					/>
+				<div class="flex items-center py-2 px-3 mb-1">
+					<!-- User Icon -->
+					<div class="mr-3">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-600 dark:text-gray-400">
+							<path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" />
+						</svg>
+					</div>
+					<!-- Role Text -->
+					<div class="text-sm">
+						<span class="text-gray-600 dark:text-gray-400">Role:</span>
+						<span class="ml-1 font-medium {role === 'admin' ? 'text-blue-600 dark:text-blue-400' : role === 'premium' ? 'text-orange-600 dark:text-orange-400' : role === 'user' ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}">
+							{$i18n.t(role.charAt(0).toUpperCase() + role.slice(1))}
+						</span>
+					</div>
 				</div>
 				<hr class="border-gray-100 dark:border-gray-800 my-1 p-0" />
 			{/if}
@@ -233,47 +241,45 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
-			{#if usage}
-				{#if usage?.user_ids?.length > 0 || activeUsers?.length > 0}
-					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
+			<!-- Active Users Display -->
+			{#if activeUsers?.length > 0 || (usage?.user_ids?.length > 0)}
+				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<!-- Active Users Display -->
-					<div class="py-2 px-3">
-						<div class="flex items-center gap-2 mb-2">
-							<div class="flex items-center">
-								<span class="relative flex size-2">
-									<span
-										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-									/>
-									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-								</span>
-							</div>
-							<span class="text-xs text-gray-600 dark:text-gray-400">
-								{$i18n.t('Active Users')}: {activeUsers?.length || usage?.user_ids?.length || 0}
+				<div class="py-2 px-3">
+					<div class="flex items-center gap-2 mb-2">
+						<div class="flex items-center">
+							<span class="relative flex size-2">
+								<span
+									class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+								/>
+								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
 							</span>
 						</div>
-
-						{#if activeUsers?.length > 0}
-							<div class="flex flex-wrap gap-2">
-								{#each activeUsers as activeUser}
-									<div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1">
-										<img
-											src={activeUser.profile_image_url || '/user.png'}
-											alt={activeUser.name}
-											class="w-4 h-4 rounded-full object-cover"
-											on:error={(e) => {
-												e.currentTarget.src = '/user.png';
-											}}
-										/>
-										<span class="text-xs font-medium truncate max-w-16" title={activeUser.name}>
-											{activeUser.name}
-										</span>
-									</div>
-								{/each}
-							</div>
-						{/if}
+						<span class="text-xs text-gray-600 dark:text-gray-400">
+							{$i18n.t('Active Users')}: {activeUsers?.length || usage?.user_ids?.length || 0}
+						</span>
 					</div>
-				{/if}
+
+					{#if activeUsers?.length > 0}
+						<div class="flex flex-wrap gap-2">
+							{#each activeUsers as activeUser}
+								<div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1">
+									<img
+										src={activeUser.profile_image_url || '/user.png'}
+										alt={activeUser.name}
+										class="w-4 h-4 rounded-full object-cover"
+										on:error={(e) => {
+											e.currentTarget.src = '/user.png';
+										}}
+									/>
+									<span class="text-xs font-medium truncate max-w-16" title={activeUser.name}>
+										{activeUser.name}
+									</span>
+								</div>
+							{/each}
+						</div>
+					{/if}
+				</div>
 			{/if}
 
 			<!-- <DropdownMenu.Item class="flex items-center py-1.5 px-3 text-sm ">

@@ -288,6 +288,7 @@
 							>
 								<option value="pending">{$i18n.t('pending')}</option>
 								<option value="user">{$i18n.t('user')}</option>
+								<option value="premium">{$i18n.t('premium')}</option>
 								<option value="admin">{$i18n.t('admin')}</option>
 							</select>
 						</div>
@@ -375,7 +376,9 @@
 
 					<div class=" mb-2.5 w-full justify-between">
 						<div class="flex w-full justify-between">
-							<div class=" self-center text-xs font-medium">{$i18n.t('JWT Expiration')}</div>
+							<div class="flex w-full justify-between">
+								<div class=" self-center text-xs font-medium">{$i18n.t('JWT Expiration')}</div>
+							</div>
 						</div>
 
 						<div class="flex mt-2 space-x-2">
