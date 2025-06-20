@@ -41,13 +41,27 @@ router = APIRouter()
 
 @router.get("/active")
 async def get_active_users(
-    user=Depends(get_verified_user),
+    user=Depends(get_admin_user),
 ):
     """
-    Get a list of active users.
+    Get a list of active users with detailed information.
+    Only admin users can access this endpoint.
     """
+    active_user_ids = get_active_user_ids()
+    active_users = Users.get_users_by_user_ids(active_user_ids)
+    
     return {
-        "user_ids": get_active_user_ids(),
+        "user_ids": active_user_ids,
+        "users": [
+            {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "role": user.role,
+                "profile_image_url": user.profile_image_url
+            }
+            for user in active_users
+        ]
     }
 
 
