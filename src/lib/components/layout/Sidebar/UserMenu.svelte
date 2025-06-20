@@ -7,6 +7,7 @@
 	import { fade, slide } from 'svelte/transition';
 
 	import { getUsage } from '$lib/apis';
+	import { getActiveUsers } from '$lib/apis/users';
 	import { userSignOut } from '$lib/apis/auths';
 
 	import { showSettings, mobile, showSidebar, user } from '$lib/stores';
@@ -21,6 +22,7 @@
 	import Code from '$lib/components/icons/Code.svelte';
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
+	import Badge from '$lib/components/common/Badge.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -34,6 +36,8 @@
 	const dispatch = createEventDispatcher();
 
 	let usage = null;
+	let activeUsers = [];
+	
 	const getUsageInfo = async () => {
 		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
@@ -46,8 +50,21 @@
 		}
 	};
 
+	const getActiveUsersInfo = async () => {
+		const res = await getActiveUsers(localStorage.token).catch((error) => {
+			console.error('Error fetching active users info:', error);
+		});
+
+		if (res && res.users) {
+			activeUsers = res.users;
+		} else {
+			activeUsers = [];
+		}
+	};
+
 	$: if (show) {
 		getUsageInfo();
+		getActiveUsersInfo();
 	}
 </script>
 
@@ -72,6 +89,17 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
+			<!-- User Role Display -->
+			{#if role}
+				<div class="flex items-center justify-center py-2 px-3 mb-1">
+					<Badge
+						type={role === 'admin' ? 'info' : role === 'premium' ? 'warning' : role === 'user' ? 'success' : 'muted'}
+						content={$i18n.t(role.charAt(0).toUpperCase() + role.slice(1))}
+					/>
+				</div>
+				<hr class="border-gray-100 dark:border-gray-800 my-1 p-0" />
+			{/if}
+
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -145,31 +173,33 @@
 			{#if help}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-				<!-- {$i18n.t('Help')} -->
-				<DropdownMenu.Item
-					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-					id="chat-share-button"
-					on:click={() => {
-						window.open('https://docs.openwebui.com', '_blank');
-						show = false;
-					}}
-				>
-					<QuestionMarkCircle className="size-5" />
-					<div class="flex items-center">{$i18n.t('Documentation')}</div>
-				</DropdownMenu.Item>
+				{#if role === 'admin'}
+					<!-- {$i18n.t('Help')} -->
+					<DropdownMenu.Item
+						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+						id="chat-share-button"
+						on:click={() => {
+							window.open('https://docs.openwebui.com', '_blank');
+							show = false;
+						}}
+					>
+						<QuestionMarkCircle className="size-5" />
+						<div class="flex items-center">{$i18n.t('Documentation')}</div>
+					</DropdownMenu.Item>
 
-				<!-- Releases -->
-				<DropdownMenu.Item
-					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-					id="menu-item-releases"
-					on:click={() => {
-						window.open('https://github.com/open-webui/open-webui/releases', '_blank');
-						show = false;
-					}}
-				>
-					<Map className="size-5" />
-					<div class="flex items-center">{$i18n.t('Releases')}</div>
-				</DropdownMenu.Item>
+					<!-- Releases -->
+					<DropdownMenu.Item
+						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+						id="menu-item-releases"
+						on:click={() => {
+							window.open('https://github.com/open-webui/open-webui/releases', '_blank');
+							show = false;
+						}}
+					>
+						<Map className="size-5" />
+						<div class="flex items-center">{$i18n.t('Releases')}</div>
+					</DropdownMenu.Item>
+				{/if}
 
 				<DropdownMenu.Item
 					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
@@ -204,21 +234,13 @@
 			</button>
 
 			{#if usage}
-				{#if usage?.user_ids?.length > 0}
+				{#if usage?.user_ids?.length > 0 || activeUsers?.length > 0}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<Tooltip
-						content={usage?.model_ids && usage?.model_ids.length > 0
-							? `${$i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
-							: ''}
-					>
-						<div
-							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
-							on:mouseenter={() => {
-								getUsageInfo();
-							}}
-						>
-							<div class=" flex items-center">
+					<!-- Active Users Display -->
+					<div class="py-2 px-3">
+						<div class="flex items-center gap-2 mb-2">
+							<div class="flex items-center">
 								<span class="relative flex size-2">
 									<span
 										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
@@ -226,17 +248,31 @@
 									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
 								</span>
 							</div>
-
-							<div class=" ">
-								<span class="">
-									{$i18n.t('Active Users')}:
-								</span>
-								<span class=" font-semibold">
-									{usage?.user_ids?.length}
-								</span>
-							</div>
+							<span class="text-xs text-gray-600 dark:text-gray-400">
+								{$i18n.t('Active Users')}: {activeUsers?.length || usage?.user_ids?.length || 0}
+							</span>
 						</div>
-					</Tooltip>
+
+						{#if activeUsers?.length > 0}
+							<div class="flex flex-wrap gap-2">
+								{#each activeUsers as activeUser}
+									<div class="flex items-center gap-1.5 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1">
+										<img
+											src={activeUser.profile_image_url || '/user.png'}
+											alt={activeUser.name}
+											class="w-4 h-4 rounded-full object-cover"
+											on:error={(e) => {
+												e.currentTarget.src = '/user.png';
+											}}
+										/>
+										<span class="text-xs font-medium truncate max-w-16" title={activeUser.name}>
+											{activeUser.name}
+										</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
 				{/if}
 			{/if}
 

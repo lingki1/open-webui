@@ -44,10 +44,23 @@ async def get_active_users(
     user=Depends(get_verified_user),
 ):
     """
-    Get a list of active users.
+    Get a list of active users with their details.
     """
+    active_user_ids = get_active_user_ids()
+    active_users = []
+    
+    for user_id in active_user_ids:
+        user_data = Users.get_user_by_id(user_id)
+        if user_data:
+            active_users.append({
+                "id": user_data.id,
+                "name": user_data.name,
+                "profile_image_url": user_data.profile_image_url,
+            })
+    
     return {
-        "user_ids": get_active_user_ids(),
+        "user_ids": active_user_ids,  # 保持向后兼容
+        "users": active_users,  # 新的详细信息
     }
 
 
