@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
-	import { createEventDispatcher, getContext, onMount } from 'svelte';
+	import { createEventDispatcher, getContext } from 'svelte';
+	import type { i18n as i18nType } from 'i18next';
 
-	import { flyAndScale } from '$lib/utils/transitions';
 	import { goto } from '$app/navigation';
-	import { fade, slide } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 
 	import { getUsage } from '$lib/apis';
 	import { userSignOut } from '$lib/apis/auths';
@@ -22,10 +22,9 @@
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
 
-	const i18n = getContext('i18n');
+	const i18n: i18nType = getContext('i18n');
 
 	export let show = false;
-	export let role = '';
 	export let help = false;
 	export let className = 'max-w-[240px]';
 
@@ -33,7 +32,10 @@
 
 	const dispatch = createEventDispatcher();
 
-	let usage = null;
+	let usage: {
+		user_ids: string[];
+		model_ids: string[];
+	} | null = null;
 	const getUsageInfo = async () => {
 		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
@@ -46,7 +48,7 @@
 		}
 	};
 
-	$: if (show) {
+	$: if (show && $user?.role === 'admin') {
 		getUsageInfo();
 	}
 </script>
@@ -86,7 +88,7 @@
 				<div class=" self-center mr-3">
 					<Settings className="w-5 h-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
+				<div class=" self-center truncate">{i18n.t('Settings')}</div>
 			</button>
 
 			<button
@@ -103,10 +105,22 @@
 				<div class=" self-center mr-3">
 					<ArchiveBox className="size-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Archived Chats')}</div>
+				<div class=" self-center truncate">{i18n.t('Archived Chats')}</div>
 			</button>
 
-			{#if role === 'admin'}
+			<DropdownMenu.Item
+				class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+				id="chat-share-button"
+				on:click={() => {
+					showShortcuts = !showShortcuts;
+					show = false;
+				}}
+			>
+				<Keyboard className="size-5" />
+				<div class="flex items-center">{i18n.t('Keyboard shortcuts')}</div>
+			</DropdownMenu.Item>
+
+			{#if $user?.role === 'admin'}
 				<button
 					class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 					on:click={() => {
@@ -121,7 +135,7 @@
 					<div class=" self-center mr-3">
 						<Code className="size-5" strokeWidth="1.5" />
 					</div>
-					<div class=" self-center truncate">{$i18n.t('Playground')}</div>
+					<div class=" self-center truncate">{i18n.t('Playground')}</div>
 				</button>
 
 				<button
@@ -138,15 +152,12 @@
 					<div class=" self-center mr-3">
 						<UserGroup className="w-5 h-5" strokeWidth="1.5" />
 					</div>
-					<div class=" self-center truncate">{$i18n.t('Admin Panel')}</div>
+					<div class=" self-center truncate">{i18n.t('Admin Panel')}</div>
 				</button>
-			{/if}
 
-			{#if help}
-				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
+				{#if help}
+					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-				<!-- {$i18n.t('Help')} -->
-				{#if role === 'admin'}
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="chat-share-button"
@@ -156,10 +167,9 @@
 						}}
 					>
 						<QuestionMarkCircle className="size-5" />
-						<div class="flex items-center">{$i18n.t('Documentation')}</div>
+						<div class="flex items-center">{i18n.t('Documentation')}</div>
 					</DropdownMenu.Item>
 
-					<!-- Releases -->
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="menu-item-releases"
@@ -169,21 +179,9 @@
 						}}
 					>
 						<Map className="size-5" />
-						<div class="flex items-center">{$i18n.t('Releases')}</div>
+						<div class="flex items-center">{i18n.t('Releases')}</div>
 					</DropdownMenu.Item>
 				{/if}
-
-				<DropdownMenu.Item
-					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-					id="chat-share-button"
-					on:click={() => {
-						showShortcuts = !showShortcuts;
-						show = false;
-					}}
-				>
-					<Keyboard className="size-5" />
-					<div class="flex items-center">{$i18n.t('Keyboard shortcuts')}</div>
-				</DropdownMenu.Item>
 			{/if}
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
@@ -202,49 +200,47 @@
 				<div class=" self-center mr-3">
 					<SignOut className="w-5 h-5" strokeWidth="1.5" />
 				</div>
-				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
+				<div class=" self-center truncate">{i18n.t('Sign Out')}</div>
 			</button>
 
-			{#if usage}
-				{#if usage?.user_ids?.length > 0 && role === 'admin'}
-					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
+			{#if $user?.role === 'admin'}
+				{#if usage}
+					{#if usage?.user_ids?.length > 0}
+						<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<Tooltip
-						content={usage?.model_ids && usage?.model_ids.length > 0
-							? `${$i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
-							: ''}
-					>
-						<div
-							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
-							on:mouseenter={() => {
-								getUsageInfo();
-							}}
+						<Tooltip
+							content={usage?.model_ids && usage?.model_ids.length > 0
+								? `${i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
+								: ''}
 						>
-							<div class=" flex items-center">
-								<span class="relative flex size-2">
-									<span
-										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-									/>
-									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-								</span>
-							</div>
+							<div
+								class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
+								on:mouseenter={() => {
+									getUsageInfo();
+								}}
+							>
+								<div class=" flex items-center">
+									<span class="relative flex size-2">
+										<span
+											class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+										/>
+										<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+									</span>
+								</div>
 
-							<div class=" ">
-								<span class="">
-									{$i18n.t('Active Users')}:
-								</span>
-								<span class=" font-semibold">
-									{usage?.user_ids?.length}
-								</span>
+								<div class=" ">
+									<span class="">
+										{i18n.t('Active Users')}:
+									</span>
+									<span class=" font-semibold">
+										{usage?.user_ids?.length}
+									</span>
+								</div>
 							</div>
-						</div>
-					</Tooltip>
+						</Tooltip>
+					{/if}
 				{/if}
 			{/if}
-
-			<!-- <DropdownMenu.Item class="flex items-center py-1.5 px-3 text-sm ">
-				<div class="flex items-center">Profile</div>
-			</DropdownMenu.Item> -->
 		</DropdownMenu.Content>
 	</slot>
 </DropdownMenu.Root>
