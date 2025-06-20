@@ -72,7 +72,6 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
-			<!-- Settings - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -90,7 +89,6 @@
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</button>
 
-			<!-- Archived Chats - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={() => {
@@ -108,7 +106,6 @@
 				<div class=" self-center truncate">{$i18n.t('Archived Chats')}</div>
 			</button>
 
-			<!-- Admin Only 功能 -->
 			{#if role === 'admin'}
 				<button
 					class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
@@ -148,7 +145,7 @@
 			{#if help}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-				<!-- Documentation - 只有admin可以看到 -->
+				<!-- {$i18n.t('Help')} -->
 				{#if role === 'admin'}
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
@@ -162,7 +159,7 @@
 						<div class="flex items-center">{$i18n.t('Documentation')}</div>
 					</DropdownMenu.Item>
 
-					<!-- Releases - 只有admin可以看到 -->
+					<!-- Releases -->
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="menu-item-releases"
@@ -176,10 +173,9 @@
 					</DropdownMenu.Item>
 				{/if}
 
-				<!-- Keyboard shortcuts - 所有用户都可以看到 -->
 				<DropdownMenu.Item
 					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-					id="keyboard-shortcuts-button"
+					id="chat-share-button"
 					on:click={() => {
 						showShortcuts = !showShortcuts;
 						show = false;
@@ -192,7 +188,6 @@
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-			<!-- Sign Out - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -210,9 +205,8 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
-			<!-- Active Users - 只有admin可以看到 -->
-			{#if usage && role === 'admin'}
-				{#if usage?.user_ids?.length > 0}
+			{#if usage}
+				{#if usage?.user_ids?.length > 0 && role === 'admin'}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
 					<Tooltip
