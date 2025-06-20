@@ -108,9 +108,20 @@ async def get_session_user(
             secure=WEBUI_AUTH_COOKIE_SECURE,
         )
 
-    user_permissions = get_permissions(
-        user.id, request.app.state.config.USER_PERMISSIONS
-    )
+    # Get role-based permissions configuration from PersistentConfig
+    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
+    
+    # Get user's role-specific default permissions
+    if user.role in ["user", "premium"]:
+        default_permissions = role_permissions_config.get(
+            user.role, 
+            request.app.state.config.USER_PERMISSIONS
+        )
+    else:
+        # For admin and other roles, use general USER_PERMISSIONS
+        default_permissions = request.app.state.config.USER_PERMISSIONS
+    
+    user_permissions = get_permissions(user.id, default_permissions)
 
     return {
         "token": token,

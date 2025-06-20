@@ -320,4 +320,42 @@ Modification test passed: True   ✅ 修改隔离正常
 
 **状态**：✅ **已修复** - 权限配置对象引用问题已彻底解决
 
+## 🔧 用户登录权限获取完善 (2024-12-20)
+
+**发现问题**：在检查权限流程时，发现用户登录时的权限获取函数 `get_session_user` 仍在使用通用的 `USER_PERMISSIONS`，没有根据用户角色获取对应的权限配置。
+
+**修复位置**：`backend/open_webui/routers/auths.py` 的 `get_session_user` 函数
+
+**修复前**：
+```python
+user_permissions = get_permissions(
+    user.id, request.app.state.config.USER_PERMISSIONS  # ❌ 通用权限
+)
+```
+
+**修复后**：
+```python
+# Get role-based permissions configuration from PersistentConfig
+role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
+
+# Get user's role-specific default permissions
+if user.role in ["user", "premium"]:
+    default_permissions = role_permissions_config.get(
+        user.role,  # ✅ 根据角色获取对应权限
+        request.app.state.config.USER_PERMISSIONS
+    )
+else:
+    # For admin and other roles, use general USER_PERMISSIONS
+    default_permissions = request.app.state.config.USER_PERMISSIONS
+
+user_permissions = get_permissions(user.id, default_permissions)
+```
+
+**修复效果**：
+- ✅ 用户登录时会根据角色（user/premium）获取对应的权限配置
+- ✅ 前端 `$user.permissions` 包含正确的角色特定权限
+- ✅ 确保整个权限系统的一致性，从登录到功能使用全流程支持角色权限
+
+**状态**：✅ **已修复** - 权限获取流程已完全支持角色特定权限
+
 ---
