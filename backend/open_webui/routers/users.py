@@ -189,6 +189,130 @@ async def update_default_user_permissions(
 
 
 ############################
+# Role-based Default Permissions
+############################
+
+
+@router.get("/default/permissions/roles")
+async def get_role_based_permissions(request: Request, user=Depends(get_admin_user)):
+    """Get role-based default permissions for all roles"""
+    user_permissions = request.app.state.config.USER_PERMISSIONS
+    
+    # Get current role-specific permissions if they exist
+    roles_permissions = user_permissions.get("roles", {})
+    
+    # Default structure for each role
+    default_role_permissions = {
+        "workspace": WorkspacePermissions().model_dump(),
+        "sharing": SharingPermissions().model_dump(),
+        "chat": ChatPermissions().model_dump(),
+        "features": FeaturesPermissions().model_dump(),
+    }
+    
+    # Ensure all roles have permissions defined
+    for role in ["user", "premium"]:
+        if role not in roles_permissions:
+            roles_permissions[role] = default_role_permissions.copy()
+    
+    return {
+        "roles": roles_permissions,
+        "global": {
+            "workspace": WorkspacePermissions(
+                **user_permissions.get("workspace", {})
+            ).model_dump(),
+            "sharing": SharingPermissions(
+                **user_permissions.get("sharing", {})
+            ).model_dump(),
+            "chat": ChatPermissions(
+                **user_permissions.get("chat", {})
+            ).model_dump(),
+            "features": FeaturesPermissions(
+                **user_permissions.get("features", {})
+            ).model_dump(),
+        }
+    }
+
+
+@router.post("/default/permissions/roles")
+async def update_role_based_permissions(
+    request: Request, 
+    form_data: dict, 
+    user=Depends(get_admin_user)
+):
+    """Update role-based default permissions"""
+    current_permissions = request.app.state.config.USER_PERMISSIONS
+    
+    # Update the roles permissions
+    if "roles" in form_data:
+        current_permissions["roles"] = form_data["roles"]
+    
+    # Update global permissions if provided
+    if "global" in form_data:
+        for key in ["workspace", "sharing", "chat", "features"]:
+            if key in form_data["global"]:
+                current_permissions[key] = form_data["global"][key]
+    
+    request.app.state.config.USER_PERMISSIONS = current_permissions
+    return current_permissions
+
+
+@router.get("/default/permissions/role/{role}")
+async def get_role_permissions(
+    request: Request, 
+    role: str, 
+    user=Depends(get_admin_user)
+):
+    """Get default permissions for a specific role"""
+    user_permissions = request.app.state.config.USER_PERMISSIONS
+    roles_permissions = user_permissions.get("roles", {})
+    
+    if role in roles_permissions:
+        return {
+            "workspace": WorkspacePermissions(**roles_permissions[role].get("workspace", {})),
+            "sharing": SharingPermissions(**roles_permissions[role].get("sharing", {})),
+            "chat": ChatPermissions(**roles_permissions[role].get("chat", {})),
+            "features": FeaturesPermissions(**roles_permissions[role].get("features", {})),
+        }
+    else:
+        # Return global default permissions if role-specific don't exist
+        return {
+            "workspace": WorkspacePermissions(
+                **user_permissions.get("workspace", {})
+            ),
+            "sharing": SharingPermissions(
+                **user_permissions.get("sharing", {})
+            ),
+            "chat": ChatPermissions(
+                **user_permissions.get("chat", {})
+            ),
+            "features": FeaturesPermissions(
+                **user_permissions.get("features", {})
+            ),
+        }
+
+
+@router.post("/default/permissions/role/{role}")
+async def update_role_permissions(
+    request: Request, 
+    role: str, 
+    form_data: UserPermissions, 
+    user=Depends(get_admin_user)
+):
+    """Update default permissions for a specific role"""
+    current_permissions = request.app.state.config.USER_PERMISSIONS
+    
+    # Initialize roles dict if it doesn't exist
+    if "roles" not in current_permissions:
+        current_permissions["roles"] = {}
+    
+    # Update the specific role permissions
+    current_permissions["roles"][role] = form_data.model_dump()
+    
+    request.app.state.config.USER_PERMISSIONS = current_permissions
+    return current_permissions["roles"][role]
+
+
+############################
 # GetUserSettingsBySessionUser
 ############################
 

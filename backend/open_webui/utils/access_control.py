@@ -25,6 +25,30 @@ def fill_missing_permissions(
     return permissions
 
 
+def get_role_based_permissions(
+    user_id: str, 
+    default_permissions: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Get role-based default permissions for a user.
+    If role-specific permissions exist, use them; otherwise, use global default.
+    """
+    user = Users.get_user_by_id(user_id)
+    if not user:
+        return default_permissions
+    
+    user_role = user.role
+    
+    # Check if role-specific permissions exist
+    if isinstance(default_permissions.get('roles'), dict) and user_role in default_permissions['roles']:
+        role_permissions = default_permissions['roles'][user_role]
+        # Fill missing permissions with global defaults
+        return fill_missing_permissions(role_permissions, DEFAULT_USER_PERMISSIONS)
+    
+    # If no role-specific permissions, use global default
+    return default_permissions
+
+
 def get_permissions(
     user_id: str,
     default_permissions: Dict[str, Any],
@@ -55,8 +79,11 @@ def get_permissions(
 
     user_groups = Groups.get_groups_by_member_id(user_id)
 
+    # Get role-based default permissions instead of global default
+    role_based_permissions = get_role_based_permissions(user_id, default_permissions)
+    
     # Deep copy default permissions to avoid modifying the original dict
-    permissions = json.loads(json.dumps(default_permissions))
+    permissions = json.loads(json.dumps(role_based_permissions))
 
     # Combine permissions from all user groups
     for group in user_groups:
@@ -64,7 +91,7 @@ def get_permissions(
         permissions = combine_permissions(permissions, group_permissions)
 
     # Ensure all fields from default_permissions are present and filled in
-    permissions = fill_missing_permissions(permissions, default_permissions)
+    permissions = fill_missing_permissions(permissions, DEFAULT_USER_PERMISSIONS)
 
     return permissions
 
@@ -100,11 +127,12 @@ def has_permission(
         if get_permission(group_permissions, permission_hierarchy):
             return True
 
-    # Check default permissions afterward if the group permissions don't allow it
-    default_permissions = fill_missing_permissions(
-        default_permissions, DEFAULT_USER_PERMISSIONS
+    # Get role-based permissions instead of global default
+    role_based_permissions = get_role_based_permissions(user_id, default_permissions)
+    role_based_permissions = fill_missing_permissions(
+        role_based_permissions, DEFAULT_USER_PERMISSIONS
     )
-    return get_permission(default_permissions, permission_hierarchy)
+    return get_permission(role_based_permissions, permission_hierarchy)
 
 
 def has_access(

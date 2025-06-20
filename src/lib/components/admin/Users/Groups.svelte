@@ -26,7 +26,10 @@
 	import {
 		getUserDefaultPermissions,
 		getAllUsers,
-		updateUserDefaultPermissions
+		updateUserDefaultPermissions,
+		getRoleBasedPermissions,
+		updateRoleBasedPermissions,
+		updateRolePermissions
 	} from '$lib/apis/users';
 
 	const i18n = getContext('i18n');
@@ -87,8 +90,19 @@
 		}
 	};
 
+	let roleBasedPermissions = {
+		roles: {
+			user: {...defaultPermissions},
+			premium: {...defaultPermissions}
+		},
+		global: {...defaultPermissions}
+	};
+
 	let showCreateGroupModal = false;
 	let showDefaultPermissionsModal = false;
+	let showRolePermissionsModal = false;
+	let selectedRole = 'user';
+	let rolePermissions = {...defaultPermissions};
 
 	const setGroups = async () => {
 		groups = await getGroups(localStorage.token);
@@ -122,6 +136,24 @@
 		}
 	};
 
+	const updateRolePermissionsHandler = async (role, permissions) => {
+		const res = await updateRolePermissions(localStorage.token, role, permissions).catch((error) => {
+			toast.error(`${error}`);
+			return null;
+		});
+
+		if (res) {
+			toast.success($i18n.t(`${role.charAt(0).toUpperCase() + role.slice(1)} permissions updated successfully`));
+			roleBasedPermissions = await getRoleBasedPermissions(localStorage.token);
+		}
+	};
+
+	const openRolePermissionsModal = (role) => {
+		selectedRole = role;
+		rolePermissions = JSON.parse(JSON.stringify(roleBasedPermissions.roles[role] || defaultPermissions));
+		showRolePermissionsModal = true;
+	};
+
 	onMount(async () => {
 		if ($user?.role !== 'admin') {
 			await goto('/');
@@ -140,6 +172,7 @@
 
 		await setGroups();
 		defaultPermissions = await getUserDefaultPermissions(localStorage.token);
+		roleBasedPermissions = await getRoleBasedPermissions(localStorage.token);
 
 		loaded = true;
 	});
@@ -248,6 +281,14 @@
 			onSubmit={updateDefaultPermissionsHandler}
 		/>
 
+		<GroupModal
+			bind:show={showRolePermissionsModal}
+			tabs={['permissions']}
+			bind:permissions={rolePermissions}
+			custom={false}
+			onSubmit={(group) => updateRolePermissionsHandler(selectedRole, group.permissions)}
+		/>
+
 		<button
 			class="flex items-center justify-between rounded-lg w-full transition pt-1"
 			on:click={() => {
@@ -260,10 +301,62 @@
 				</div>
 
 				<div class="text-left">
-					<div class=" text-sm font-medium">{$i18n.t('Default permissions')}</div>
+					<div class=" text-sm font-medium">{$i18n.t('Global default permissions')}</div>
+
+					<div class="flex text-xs mt-0.5">
+						{$i18n.t('applies to all users as fallback')}
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<ChevronRight strokeWidth="2.5" />
+			</div>
+		</button>
+
+		<hr class="my-2 border-gray-100 dark:border-gray-850" />
+
+		<!-- User Role Permissions -->
+		<button
+			class="flex items-center justify-between rounded-lg w-full transition pt-1"
+			on:click={() => openRolePermissionsModal('user')}
+		>
+			<div class="flex items-center gap-2.5">
+				<div class="p-1.5 bg-green-500/20 rounded-full">
+					<User className="size-4 text-green-600" />
+				</div>
+
+				<div class="text-left">
+					<div class=" text-sm font-medium">{$i18n.t('User role permissions')}</div>
 
 					<div class="flex text-xs mt-0.5">
 						{$i18n.t('applies to all users with the "user" role')}
+					</div>
+				</div>
+			</div>
+
+			<div>
+				<ChevronRight strokeWidth="2.5" />
+			</div>
+		</button>
+
+		<hr class="my-2 border-gray-100 dark:border-gray-850" />
+
+		<!-- Premium Role Permissions -->
+		<button
+			class="flex items-center justify-between rounded-lg w-full transition pt-1"
+			on:click={() => openRolePermissionsModal('premium')}
+		>
+			<div class="flex items-center gap-2.5">
+				<div class="p-1.5 bg-pink-500/20 rounded-full">
+					<UserCircleSolid className="size-4 text-pink-600" />
+				</div>
+
+				<div class="text-left">
+					<div class=" text-sm font-medium">{$i18n.t('Premium role permissions')}</div>
+
+					<div class="flex text-xs mt-0.5">
+						{$i18n.t('applies to all users with the "premium" role')}
 					</div>
 				</div>
 			</div>
