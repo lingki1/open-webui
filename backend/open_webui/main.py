@@ -1245,7 +1245,7 @@ async def get_models(request: Request, user=Depends(get_verified_user)):
         )
 
     # Filter out models that the user does not have access to
-    if user.role in ["user", "premium"] and not BYPASS_MODEL_ACCESS_CONTROL:
+    if user.role == "user" and not BYPASS_MODEL_ACCESS_CONTROL:
         models = get_filtered_models(models, user)
 
     log.debug(
@@ -1314,7 +1314,7 @@ async def chat_completion(
             model_info = Models.get_model_by_id(model_id)
 
             # Check if user has access to the model
-            if not BYPASS_MODEL_ACCESS_CONTROL and user.role in ["user", "premium"]:
+            if not BYPASS_MODEL_ACCESS_CONTROL and user.role == "user":
                 try:
                     check_model_access(user, model)
                 except Exception as e:
@@ -1660,26 +1660,7 @@ async def get_current_usage(user=Depends(get_verified_user)):
     This is an experimental endpoint and subject to change.
     """
     try:
-        # 获取在线用户ID列表
-        user_ids = get_active_user_ids()
-        
-        # 获取用户详细信息
-        users = []
-        if user_ids:
-            for user_id in user_ids:
-                user_obj = Users.get_user_by_id(user_id)
-                if user_obj:
-                    users.append({
-                        "id": user_obj.id,
-                        "name": user_obj.name,
-                        "email": user_obj.email
-                    })
-        
-        return {
-            "model_ids": get_models_in_use(), 
-            "user_ids": user_ids,  # 保持向后兼容
-            "users": users  # 新增：包含用户详细信息的数组
-        }
+        return {"model_ids": get_models_in_use(), "user_ids": get_active_user_ids()}
     except Exception as e:
         log.error(f"Error getting usage statistics: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")

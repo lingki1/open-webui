@@ -33,7 +33,7 @@
 
 	const dispatch = createEventDispatcher();
 
-	let usage: any = null;
+	let usage = null;
 	const getUsageInfo = async () => {
 		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
@@ -72,12 +72,6 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
-			<!-- 用户角色显示 -->
-			<div class="px-3 py-2 text-xs text-gray-500 border-b border-gray-100 dark:border-gray-800 mb-1">
-				<span class="uppercase font-medium tracking-wider">{role || 'user'}</span>
-			</div>
-
-			<!-- Settings - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -95,7 +89,6 @@
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</button>
 
-			<!-- Archived Chats - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={() => {
@@ -152,35 +145,32 @@
 			{#if help}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-				<!-- Documentation - 只有admin可以看到 -->
-				{#if role === 'admin'}
-					<DropdownMenu.Item
-						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-						id="chat-share-button"
-						on:click={() => {
-							window.open('https://docs.openwebui.com', '_blank');
-							show = false;
-						}}
-					>
-						<QuestionMarkCircle className="size-5" />
-						<div class="flex items-center">{$i18n.t('Documentation')}</div>
-					</DropdownMenu.Item>
+				<!-- {$i18n.t('Help')} -->
+				<DropdownMenu.Item
+					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+					id="chat-share-button"
+					on:click={() => {
+						window.open('https://docs.openwebui.com', '_blank');
+						show = false;
+					}}
+				>
+					<QuestionMarkCircle className="size-5" />
+					<div class="flex items-center">{$i18n.t('Documentation')}</div>
+				</DropdownMenu.Item>
 
-					<!-- Releases - 只有admin可以看到 -->
-					<DropdownMenu.Item
-						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-						id="menu-item-releases"
-						on:click={() => {
-							window.open('https://github.com/open-webui/open-webui/releases', '_blank');
-							show = false;
-						}}
-					>
-						<Map className="size-5" />
-						<div class="flex items-center">{$i18n.t('Releases')}</div>
-					</DropdownMenu.Item>
-				{/if}
+				<!-- Releases -->
+				<DropdownMenu.Item
+					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+					id="menu-item-releases"
+					on:click={() => {
+						window.open('https://github.com/open-webui/open-webui/releases', '_blank');
+						show = false;
+					}}
+				>
+					<Map className="size-5" />
+					<div class="flex items-center">{$i18n.t('Releases')}</div>
+				</DropdownMenu.Item>
 
-				<!-- Keyboard shortcuts - 所有用户都可以看到 -->
 				<DropdownMenu.Item
 					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 					id="chat-share-button"
@@ -196,7 +186,6 @@
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-			<!-- Sign Out - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -214,39 +203,40 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
-			<!-- Active Users - 只有admin可以看到，并显示详细的在线用户信息 -->
-			{#if usage && role === 'admin'}
-				{#if usage?.users && usage.users.length > 0}
+			{#if usage}
+				{#if usage?.user_ids?.length > 0}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-					<div class="px-3 py-1">
-						<div class="flex items-center gap-2 mb-2">
-							<span class="relative flex size-2">
-								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-							</span>
-							<span class="text-xs font-medium">在线用户 ({usage?.users?.length || 0})</span>
-						</div>
-						
-						<!-- 在线用户列表 - 最多显示5个，超过则滚动 -->
-						<div class="max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-							{#each usage.users as user, index}
-								<div class="flex items-center gap-2 py-1 px-2 rounded text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-									<div class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></div>
-									<span class="truncate flex-1">{user.name}</span>
-									<span class="text-gray-400 text-xs">{user.id.slice(0, 4)}</span>
-								</div>
-							{/each}
-						</div>
-						
-						{#if usage?.model_ids && usage.model_ids.length > 0}
-							<div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-								<div class="text-xs text-gray-500">
-									<span class="font-medium">运行中模型:</span> {usage.model_ids.join(', ')}
-								</div>
+					<Tooltip
+						content={usage?.model_ids && usage?.model_ids.length > 0
+							? `${$i18n.t('Running')}: ${usage.model_ids.join(', ')} ✨`
+							: ''}
+					>
+						<div
+							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
+							on:mouseenter={() => {
+								getUsageInfo();
+							}}
+						>
+							<div class=" flex items-center">
+								<span class="relative flex size-2">
+									<span
+										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+									/>
+									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+								</span>
 							</div>
-						{/if}
-					</div>
+
+							<div class=" ">
+								<span class="">
+									{$i18n.t('Active Users')}:
+								</span>
+								<span class=" font-semibold">
+									{usage?.user_ids?.length}
+								</span>
+							</div>
+						</div>
+					</Tooltip>
 				{/if}
 			{/if}
 
