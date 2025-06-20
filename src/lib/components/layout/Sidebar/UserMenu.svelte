@@ -7,7 +7,6 @@
 	import { fade, slide } from 'svelte/transition';
 
 	import { getUsage } from '$lib/apis';
-	import { getActiveUsers } from '$lib/apis/users';
 	import { userSignOut } from '$lib/apis/auths';
 
 	import { showSettings, mobile, showSidebar, user } from '$lib/stores';
@@ -36,26 +35,13 @@
 
 	let usage = null;
 	const getUsageInfo = async () => {
-		try {
-			// Get general usage info (models)
-			const generalUsage = await getUsage(localStorage.token);
-			
-			// Get active users info (only for admin)
-			let activeUsersInfo = null;
-			if (role === 'admin') {
-				activeUsersInfo = await getActiveUsers(localStorage.token);
-			}
-			
-			if (generalUsage || activeUsersInfo) {
-				usage = {
-					...generalUsage,
-					...activeUsersInfo
-				};
-			} else {
-				usage = null;
-			}
-		} catch (error) {
+		const res = await getUsage(localStorage.token).catch((error) => {
 			console.error('Error fetching usage info:', error);
+		});
+
+		if (res) {
+			usage = res;
+		} else {
 			usage = null;
 		}
 	};
@@ -86,6 +72,7 @@
 			align="start"
 			transition={(e) => fade(e, { duration: 100 })}
 		>
+			<!-- Settings - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -103,6 +90,7 @@
 				<div class=" self-center truncate">{$i18n.t('Settings')}</div>
 			</button>
 
+			<!-- Archived Chats - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={() => {
@@ -120,6 +108,7 @@
 				<div class=" self-center truncate">{$i18n.t('Archived Chats')}</div>
 			</button>
 
+			<!-- Admin Only 功能 -->
 			{#if role === 'admin'}
 				<button
 					class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
@@ -159,9 +148,8 @@
 			{#if help}
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
-				<!-- Only show Documentation and Releases for admin users -->
+				<!-- Documentation - 只有admin可以看到 -->
 				{#if role === 'admin'}
-					<!-- {$i18n.t('Help')} -->
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="chat-share-button"
@@ -174,7 +162,7 @@
 						<div class="flex items-center">{$i18n.t('Documentation')}</div>
 					</DropdownMenu.Item>
 
-					<!-- Releases -->
+					<!-- Releases - 只有admin可以看到 -->
 					<DropdownMenu.Item
 						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
 						id="menu-item-releases"
@@ -188,10 +176,10 @@
 					</DropdownMenu.Item>
 				{/if}
 
-				<!-- Keyboard shortcuts - available for all users -->
+				<!-- Keyboard shortcuts - 所有用户都可以看到 -->
 				<DropdownMenu.Item
 					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-					id="chat-share-button"
+					id="keyboard-shortcuts-button"
 					on:click={() => {
 						showShortcuts = !showShortcuts;
 						show = false;
@@ -204,6 +192,7 @@
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
+			<!-- Sign Out - 所有用户都可以看到 -->
 			<button
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
 				on:click={async () => {
@@ -221,6 +210,7 @@
 				<div class=" self-center truncate">{$i18n.t('Sign Out')}</div>
 			</button>
 
+			<!-- Active Users - 只有admin可以看到 -->
 			{#if usage && role === 'admin'}
 				{#if usage?.user_ids?.length > 0}
 					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
@@ -231,60 +221,28 @@
 							: ''}
 					>
 						<div
-							class="flex flex-col rounded-md py-1 px-3 text-xs gap-1"
+							class="flex rounded-md py-1 px-3 text-xs gap-2.5 items-center"
 							on:mouseenter={() => {
 								getUsageInfo();
 							}}
 						>
-							<!-- Header with count -->
-							<div class="flex gap-2.5 items-center">
-								<div class=" flex items-center">
-									<span class="relative flex size-2">
-										<span
-											class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-										/>
-										<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-									</span>
-								</div>
-
-								<div class=" ">
-									<span class="">
-										{$i18n.t('Active Users')}:
-									</span>
-									<span class=" font-semibold">
-										{usage?.user_ids?.length}
-									</span>
-								</div>
+							<div class=" flex items-center">
+								<span class="relative flex size-2">
+									<span
+										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+									/>
+									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+								</span>
 							</div>
 
-							<!-- User list -->
-							{#if usage?.users && usage.users.length > 0}
-								<div class="flex flex-col gap-1 mt-1">
-									{#each usage.users.slice(0, 4) as user, index}
-										<div class="flex items-center gap-2 py-0.5">
-											<img
-												class="rounded-full w-4 h-4 object-cover"
-												src={user.profile_image_url || '/user.png'}
-												alt={user.name}
-											/>
-											<span class="text-xs text-gray-600 dark:text-gray-300 truncate">
-												{user.name}
-											</span>
-											{#if user.role === 'admin'}
-												<span class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-1 rounded">
-													Admin
-												</span>
-											{/if}
-										</div>
-									{/each}
-									
-									{#if usage.users.length > 4}
-										<div class="text-xs text-gray-500 dark:text-gray-400 pl-6">
-											+{usage.users.length - 4} more...
-										</div>
-									{/if}
-								</div>
-							{/if}
+							<div class=" ">
+								<span class="">
+									{$i18n.t('Active Users')}:
+								</span>
+								<span class=" font-semibold">
+									{usage?.user_ids?.length}
+								</span>
+							</div>
 						</div>
 					</Tooltip>
 				{/if}
