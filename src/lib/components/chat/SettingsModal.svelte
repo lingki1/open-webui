@@ -192,7 +192,7 @@
 			]
 		},
 		...($user?.role === 'admin' ||
-		($user?.role === 'user' && $config?.features?.enable_direct_connections)
+		(($user?.role === 'user' || $user?.role === 'premium') && $config?.features?.enable_direct_connections)
 			? [
 					{
 						id: 'connections',
@@ -211,7 +211,7 @@
 			: []),
 
 		...($user?.role === 'admin' ||
-		(($user?.role === 'user' || $user?.role === 'premium') &&
+		($user?.role === 'user' &&
 			$user?.permissions?.features?.direct_tool_servers &&
 			$config?.features?.direct_tool_servers)
 			? [
@@ -688,7 +688,7 @@
 								</button>
 							{/if}
 						{:else if tabId === 'tools'}
-							{#if $user?.role === 'admin' || (($user?.role === 'user' || $user?.role === 'premium') && $user?.permissions?.features?.direct_tool_servers && $config?.features?.direct_tool_servers)}
+							{#if $user?.role === 'admin' || ($user?.role === 'user' && $user?.permissions?.features?.direct_tool_servers && $config?.features?.direct_tool_servers)}
 								<button
 									role="tab"
 									aria-controls="tab-tools"
@@ -851,7 +851,7 @@
 									>
 										<path
 											fill-rule="evenodd"
-											d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0zm-5-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM8 9c-1.825 0-3.422.977-4.295 2.437A5.49 5.49 0 0 0 8 13.5a5.49 5.49 0 0 0 4.294-2.063A4.997 4.997 0 0 0 8 9Z"
+											d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0Zm-5-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM8 9c-1.825 0-3.422.977-4.295 2.437A5.49 5.49 0 0 0 8 13.5a5.49 5.49 0 0 0 4.294-2.063A4.997 4.997 0 0 0 8 9Z"
 											clip-rule="evenodd"
 										/>
 									</svg>
@@ -887,7 +887,7 @@
 									>
 										<path
 											fill-rule="evenodd"
-											d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0zm-7-4a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM9 9a.75.75 0 0 0 0 1.5h.253a.25.25 0 0 1 .244.304l-.459 2.066A1.75 1.75 0 0 0 10.747 15H11a.75.75 0 0 0 0-1.5h-.253a.25.25 0 0 1-.244-.304l.459-2.066A1.75 1.75 0 0 0 9.253 9H9z"
+											d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
 											clip-rule="evenodd"
 										/>
 									</svg>
