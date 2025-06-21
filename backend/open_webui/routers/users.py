@@ -305,14 +305,28 @@ async def update_user_settings_by_session_user(
     if (
         user.role != "admin"
         and "toolServers" in updated_user_settings.get("ui").keys()
-        and not has_permission(
+    ):
+        # Get role-based permissions configuration
+        role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
+        
+        # Get user's role-specific default permissions
+        user_obj = Users.get_user_by_id(user.id)
+        if user_obj and user_obj.role in ["user", "premium"]:
+            default_permissions = role_permissions_config.get(
+                user_obj.role, 
+                request.app.state.config.USER_PERMISSIONS
+            )
+        else:
+            # For admin and other roles, use general USER_PERMISSIONS
+            default_permissions = request.app.state.config.USER_PERMISSIONS
+        
+        if not has_permission(
             user.id,
             "features.direct_tool_servers",
-            request.app.state.config.USER_PERMISSIONS,
-        )
-    ):
-        # If the user is not an admin and does not have permission to use tool servers, remove the key
-        updated_user_settings["ui"].pop("toolServers", None)
+            default_permissions,
+        ):
+            # If the user does not have permission to use tool servers, remove the key
+            updated_user_settings["ui"].pop("toolServers", None)
 
     user = Users.update_user_settings_by_id(user.id, updated_user_settings)
     if user:
