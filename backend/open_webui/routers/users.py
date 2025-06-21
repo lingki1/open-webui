@@ -121,18 +121,18 @@ async def get_user_groups(user=Depends(get_verified_user)):
 @router.get("/permissions")
 async def get_user_permissisions(request: Request, user=Depends(get_verified_user)):
     # Get role-based permissions configuration
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
     
     # Get user's role-specific default permissions
     user_obj = Users.get_user_by_id(user.id)
     if user_obj and user_obj.role in ["user", "premium"]:
         default_permissions = role_permissions_config.get(
             user_obj.role, 
-            request.app.state.config.USER_PERMISSIONS.value
+            request.app.state.config.USER_PERMISSIONS
         )
     else:
         # For admin and other roles, use general USER_PERMISSIONS
-        default_permissions = request.app.state.config.USER_PERMISSIONS.value
+        default_permissions = request.app.state.config.USER_PERMISSIONS
 
     user_permissions = get_permissions(user.id, default_permissions)
     return user_permissions
@@ -190,16 +190,16 @@ class UserPermissions(BaseModel):
 async def get_default_user_permissions(request: Request, user=Depends(get_admin_user)):
     return {
         "workspace": WorkspacePermissions(
-            **request.app.state.config.USER_PERMISSIONS.value.get("workspace", {})
+            **request.app.state.config.USER_PERMISSIONS.get("workspace", {})
         ),
         "sharing": SharingPermissions(
-            **request.app.state.config.USER_PERMISSIONS.value.get("sharing", {})
+            **request.app.state.config.USER_PERMISSIONS.get("sharing", {})
         ),
         "chat": ChatPermissions(
-            **request.app.state.config.USER_PERMISSIONS.value.get("chat", {})
+            **request.app.state.config.USER_PERMISSIONS.get("chat", {})
         ),
         "features": FeaturesPermissions(
-            **request.app.state.config.USER_PERMISSIONS.value.get("features", {})
+            **request.app.state.config.USER_PERMISSIONS.get("features", {})
         ),
     }
 
@@ -208,8 +208,8 @@ async def get_default_user_permissions(request: Request, user=Depends(get_admin_
 async def update_default_user_permissions(
     request: Request, form_data: UserPermissions, user=Depends(get_admin_user)
 ):
-    request.app.state.config.USER_PERMISSIONS.value = form_data.model_dump()
-    return request.app.state.config.USER_PERMISSIONS.value
+    request.app.state.config.USER_PERMISSIONS = form_data.model_dump()
+    return request.app.state.config.USER_PERMISSIONS
 
 
 ############################
@@ -230,9 +230,9 @@ async def get_default_permissions_by_role(
         )
     
     # Get role-based permissions from persistent config
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
     role_permissions = role_permissions_config.get(role, 
-                        request.app.state.config.USER_PERMISSIONS.value)
+                        request.app.state.config.USER_PERMISSIONS)
     
     return {
         "workspace": WorkspacePermissions(
@@ -264,14 +264,13 @@ async def update_default_permissions_by_role(
         )
     
     # Get current role permissions
-    role_permissions = request.app.state.config.ROLE_PERMISSIONS.value.copy()
+    role_permissions = request.app.state.config.ROLE_PERMISSIONS.copy()
     
     # Update the role-specific permissions
     role_permissions[role] = form_data.model_dump()
     
     # Save to persistent config
-    request.app.state.config.ROLE_PERMISSIONS.value = role_permissions
-    request.app.state.config.ROLE_PERMISSIONS.save()
+    request.app.state.config.ROLE_PERMISSIONS = role_permissions
     
     return role_permissions[role]
 
@@ -309,7 +308,7 @@ async def update_user_settings_by_session_user(
         and not has_permission(
             user.id,
             "features.direct_tool_servers",
-            request.app.state.config.USER_PERMISSIONS.value,
+            request.app.state.config.USER_PERMISSIONS,
         )
     ):
         # If the user is not an admin and does not have permission to use tool servers, remove the key

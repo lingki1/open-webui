@@ -512,17 +512,17 @@ class OAuthManager:
 
         if auth_manager_config.ENABLE_OAUTH_GROUP_MANAGEMENT and user.role != "admin":
             # Get role-based permissions
-            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
             
             # Get user's role-specific default permissions
             if user.role in ["user", "premium"]:
                 default_permissions = role_permissions_config.get(
                     user.role, 
-                    request.app.state.config.USER_PERMISSIONS.value
+                    request.app.state.config.USER_PERMISSIONS
                 )
             else:
                 # For admin and other roles, use general USER_PERMISSIONS
-                default_permissions = request.app.state.config.USER_PERMISSIONS.value
+                default_permissions = request.app.state.config.USER_PERMISSIONS
                 
             self.update_user_groups(
                 user=user,

@@ -109,17 +109,17 @@ async def get_session_user(
         )
 
     # Get role-based permissions
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
     
     # Get user's role-specific default permissions
     if user.role in ["user", "premium"]:
         default_permissions = role_permissions_config.get(
             user.role, 
-            request.app.state.config.USER_PERMISSIONS.value
+            request.app.state.config.USER_PERMISSIONS
         )
     else:
         # For admin and other roles, use general USER_PERMISSIONS
-        default_permissions = request.app.state.config.USER_PERMISSIONS.value
+        default_permissions = request.app.state.config.USER_PERMISSIONS
 
     user_permissions = get_permissions(user.id, default_permissions)
 
@@ -420,17 +420,17 @@ async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
                 )
 
                 # Get role-based permissions
-                role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+                role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
                 
                 # Get user's role-specific default permissions
                 if user.role in ["user", "premium"]:
                     default_permissions = role_permissions_config.get(
                         user.role, 
-                        request.app.state.config.USER_PERMISSIONS.value
+                        request.app.state.config.USER_PERMISSIONS
                     )
                 else:
                     # For admin and other roles, use general USER_PERMISSIONS
-                    default_permissions = request.app.state.config.USER_PERMISSIONS.value
+                    default_permissions = request.app.state.config.USER_PERMISSIONS
 
                 user_permissions = get_permissions(user.id, default_permissions)
 
@@ -553,17 +553,17 @@ async def signin(request: Request, response: Response, form_data: SigninForm):
         )
 
         # Get role-based permissions
-        role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+        role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
         
         # Get user's role-specific default permissions
         if user.role in ["user", "premium"]:
             default_permissions = role_permissions_config.get(
                 user.role, 
-                request.app.state.config.USER_PERMISSIONS.value
+                request.app.state.config.USER_PERMISSIONS
             )
         else:
             # For admin and other roles, use general USER_PERMISSIONS
-            default_permissions = request.app.state.config.USER_PERMISSIONS.value
+            default_permissions = request.app.state.config.USER_PERMISSIONS
 
         user_permissions = get_permissions(user.id, default_permissions)
 
@@ -674,17 +674,17 @@ async def signup(request: Request, response: Response, form_data: SignupForm):
                 )
 
             # Get role-based permissions
-            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
             
             # Get user's role-specific default permissions  
             if user.role in ["user", "premium"]:
                 default_permissions = role_permissions_config.get(
                     user.role, 
-                    request.app.state.config.USER_PERMISSIONS.value
+                    request.app.state.config.USER_PERMISSIONS
                 )
             else:
                 # For admin and other roles, use general USER_PERMISSIONS
-                default_permissions = request.app.state.config.USER_PERMISSIONS.value
+                default_permissions = request.app.state.config.USER_PERMISSIONS
 
             user_permissions = get_permissions(user.id, default_permissions)
 
