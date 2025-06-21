@@ -47,10 +47,9 @@ from open_webui.utils.auth import (
     get_current_user,
     get_password_hash,
     get_http_authorization_cred,
-    verify_password,
 )
 from open_webui.utils.webhook import post_webhook
-from open_webui.utils.access_control import get_permissions, get_role_default_permissions
+from open_webui.utils.access_control import get_permissions
 
 from typing import Optional, List
 
@@ -109,9 +108,20 @@ async def get_session_user(
             secure=WEBUI_AUTH_COOKIE_SECURE,
         )
 
-    user_permissions = get_permissions(
-        user.id, get_role_default_permissions(request, user.id)
-    )
+    # Get role-based permissions
+    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+    
+    # Get user's role-specific default permissions
+    if user.role in ["user", "premium"]:
+        default_permissions = role_permissions_config.get(
+            user.role, 
+            request.app.state.config.USER_PERMISSIONS.value
+        )
+    else:
+        # For admin and other roles, use general USER_PERMISSIONS
+        default_permissions = request.app.state.config.USER_PERMISSIONS.value
+
+    user_permissions = get_permissions(user.id, default_permissions)
 
     return {
         "token": token,
@@ -409,9 +419,20 @@ async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
                     secure=WEBUI_AUTH_COOKIE_SECURE,
                 )
 
-                user_permissions = get_permissions(
-                    user.id, get_role_default_permissions(request, user.id)
-                )
+                # Get role-based permissions
+                role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+                
+                # Get user's role-specific default permissions
+                if user.role in ["user", "premium"]:
+                    default_permissions = role_permissions_config.get(
+                        user.role, 
+                        request.app.state.config.USER_PERMISSIONS.value
+                    )
+                else:
+                    # For admin and other roles, use general USER_PERMISSIONS
+                    default_permissions = request.app.state.config.USER_PERMISSIONS.value
+
+                user_permissions = get_permissions(user.id, default_permissions)
 
                 if (
                     user.role != "admin"
@@ -531,9 +552,20 @@ async def signin(request: Request, response: Response, form_data: SigninForm):
             secure=WEBUI_AUTH_COOKIE_SECURE,
         )
 
-        user_permissions = get_permissions(
-            user.id, get_role_default_permissions(request, user.id)
-        )
+        # Get role-based permissions
+        role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+        
+        # Get user's role-specific default permissions
+        if user.role in ["user", "premium"]:
+            default_permissions = role_permissions_config.get(
+                user.role, 
+                request.app.state.config.USER_PERMISSIONS.value
+            )
+        else:
+            # For admin and other roles, use general USER_PERMISSIONS
+            default_permissions = request.app.state.config.USER_PERMISSIONS.value
+
+        user_permissions = get_permissions(user.id, default_permissions)
 
         return {
             "token": token,
@@ -641,9 +673,20 @@ async def signup(request: Request, response: Response, form_data: SignupForm):
                     },
                 )
 
-            user_permissions = get_permissions(
-                user.id, get_role_default_permissions(request, user.id)
-            )
+            # Get role-based permissions
+            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+            
+            # Get user's role-specific default permissions  
+            if user.role in ["user", "premium"]:
+                default_permissions = role_permissions_config.get(
+                    user.role, 
+                    request.app.state.config.USER_PERMISSIONS.value
+                )
+            else:
+                # For admin and other roles, use general USER_PERMISSIONS
+                default_permissions = request.app.state.config.USER_PERMISSIONS.value
+
+            user_permissions = get_permissions(user.id, default_permissions)
 
             if user_count == 0:
                 # Disable signup after the first user is created

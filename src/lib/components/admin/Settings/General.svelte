@@ -376,8 +376,8 @@
 
 					<div class=" mb-2.5 w-full justify-between">
 						<div class="flex w-full justify-between">
-							<div class="flex w-full justify-between">
-								<div class=" self-center text-xs font-medium">{$i18n.t('JWT Expiration')}</div>
+						<div class="flex w-full justify-between">
+							<div class=" self-center text-xs font-medium">{$i18n.t('JWT Expiration')}</div>
 							</div>
 						</div>
 

@@ -186,31 +186,31 @@
 				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
 				{#if role === 'admin'}
-					<!-- {$i18n.t('Help')} -->
-					<DropdownMenu.Item
-						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-						id="chat-share-button"
-						on:click={() => {
-							window.open('https://docs.openwebui.com', '_blank');
-							show = false;
-						}}
-					>
-						<QuestionMarkCircle className="size-5" />
-						<div class="flex items-center">{$i18n.t('Documentation')}</div>
-					</DropdownMenu.Item>
+				<!-- {$i18n.t('Help')} -->
+				<DropdownMenu.Item
+					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+					id="chat-share-button"
+					on:click={() => {
+						window.open('https://docs.openwebui.com', '_blank');
+						show = false;
+					}}
+				>
+					<QuestionMarkCircle className="size-5" />
+					<div class="flex items-center">{$i18n.t('Documentation')}</div>
+				</DropdownMenu.Item>
 
-					<!-- Releases -->
-					<DropdownMenu.Item
-						class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
-						id="menu-item-releases"
-						on:click={() => {
-							window.open('https://github.com/open-webui/open-webui/releases', '_blank');
-							show = false;
-						}}
-					>
-						<Map className="size-5" />
-						<div class="flex items-center">{$i18n.t('Releases')}</div>
-					</DropdownMenu.Item>
+				<!-- Releases -->
+				<DropdownMenu.Item
+					class="flex gap-2 items-center py-1.5 px-3 text-sm select-none w-full cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition"
+					id="menu-item-releases"
+					on:click={() => {
+						window.open('https://github.com/open-webui/open-webui/releases', '_blank');
+						show = false;
+					}}
+				>
+					<Map className="size-5" />
+					<div class="flex items-center">{$i18n.t('Releases')}</div>
+				</DropdownMenu.Item>
 				{/if}
 
 				<DropdownMenu.Item
@@ -247,21 +247,21 @@
 
 			<!-- Active Users Display - Only for Admin -->
 			{#if role === 'admin' && (activeUsers?.length > 0 || (usage?.user_ids?.length > 0))}
-				<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
+					<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
 
 				<div class="py-2 px-3">
 					<div class="flex items-center gap-2 mb-2">
 						<div class="flex items-center">
-							<span class="relative flex size-2">
-								<span
-									class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
-								/>
-								<span class="relative inline-flex rounded-full size-2 bg-green-500" />
-							</span>
-						</div>
+								<span class="relative flex size-2">
+									<span
+										class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"
+									/>
+									<span class="relative inline-flex rounded-full size-2 bg-green-500" />
+								</span>
+							</div>
 						<span class="text-xs text-gray-600 dark:text-gray-400">
 							{$i18n.t('Active Users')}: {activeUsers?.length || usage?.user_ids?.length || 0}
-						</span>
+								</span>
 					</div>
 
 					{#if activeUsers?.length > 0}
@@ -278,11 +278,11 @@
 									/>
 									<span class="text-xs font-medium truncate max-w-16" title={activeUser.name}>
 										{activeUser.name}
-									</span>
-								</div>
+								</span>
+							</div>
 							{/each}
 						</div>
-					{/if}
+				{/if}
 				</div>
 			{/if}
 

@@ -511,10 +511,23 @@ class OAuthManager:
         )
 
         if auth_manager_config.ENABLE_OAUTH_GROUP_MANAGEMENT and user.role != "admin":
+            # Get role-based permissions
+            role_permissions_config = request.app.state.config.ROLE_PERMISSIONS.value
+            
+            # Get user's role-specific default permissions
+            if user.role in ["user", "premium"]:
+                default_permissions = role_permissions_config.get(
+                    user.role, 
+                    request.app.state.config.USER_PERMISSIONS.value
+                )
+            else:
+                # For admin and other roles, use general USER_PERMISSIONS
+                default_permissions = request.app.state.config.USER_PERMISSIONS.value
+                
             self.update_user_groups(
                 user=user,
                 user_data=user_data,
-                default_permissions=request.app.state.config.USER_PERMISSIONS,
+                default_permissions=default_permissions,
             )
 
         # Set the cookie token

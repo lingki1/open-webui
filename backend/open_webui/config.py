@@ -1194,8 +1194,16 @@ USER_PERMISSIONS = PersistentConfig(
     DEFAULT_USER_PERMISSIONS,
 )
 
+# Role-based permissions configuration
+DEFAULT_ROLE_PERMISSIONS = {
+    "user": DEFAULT_USER_PERMISSIONS,
+    "premium": DEFAULT_USER_PERMISSIONS
+}
+
 ROLE_PERMISSIONS = PersistentConfig(
-    "ROLE_PERMISSIONS", "role_permissions", {}
+    "ROLE_PERMISSIONS",
+    "user.role_permissions",
+    DEFAULT_ROLE_PERMISSIONS,
 )
 
 ENABLE_CHANNELS = PersistentConfig(

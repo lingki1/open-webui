@@ -21,16 +21,11 @@ from open_webui.storage.provider import Storage
 
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.utils.auth import get_verified_user
-from open_webui.utils.access_control import has_access, has_permission, get_role_default_permissions
+from open_webui.utils.access_control import has_access, has_permission
 
 
 from open_webui.env import SRC_LOG_LEVELS
 from open_webui.models.models import Models, ModelForm
-from open_webui.utils.retrieval import get_retrieval_tool
-from open_webui.utils.file_handler import (
-    get_file_handler,
-    ARCHIVE_DIR,
-)
 
 
 log = logging.getLogger(__name__)
@@ -148,7 +143,7 @@ async def create_new_knowledge(
     request: Request, form_data: KnowledgeForm, user=Depends(get_verified_user)
 ):
     if user.role != "admin" and not has_permission(
-        user.id, "workspace.knowledge", get_role_default_permissions(request, user.id)
+        user.id, "workspace.knowledge", request.app.state.config.USER_PERMISSIONS
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -763,153 +758,3 @@ def add_files_to_knowledge_batch(
         **knowledge.model_dump(),
         files=Files.get_file_metadatas_by_ids(existing_file_ids),
     )
-
-
-@router.get("/summary", response_model=Optional[dict])
-async def get_summary(
-    collection_name: str, request: Request, user=Depends(get_verified_user)
-):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.read", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.post("/query")
-async def query_collection(
-    form_data: DocumentForm, request: Request, user=Depends(get_verified_user)
-):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.query", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.get("/scan")
-async def scan_for_documents(request: Request, user=Depends(get_verified_user)):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.read", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.delete("/", response_model=bool)
-async def delete_collection(
-    collection_name: str, request: Request, user=Depends(get_verified_user)
-):
-    if (
-        (
-            not Docs.get_doc_by_name(collection_name)
-            or Docs.get_doc_by_name(collection_name).user_id != user.id
-        )
-        and user.role != "admin"
-        and not has_permission(user.id, "knowledge.delete", get_role_default_permissions(request, user.id))
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.delete("/doc", response_model=bool)
-async def delete_doc_from_collection_by_id(
-    collection_name: str,
-    doc_id: str,
-    request: Request,
-    user=Depends(get_verified_user),
-):
-    if (
-        (
-            not Docs.get_doc_by_name(collection_name)
-            or Docs.get_doc_by_name(collection_name).user_id != user.id
-        )
-        and user.role != "admin"
-        and not has_permission(user.id, "knowledge.delete", get_role_default_permissions(request, user.id))
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.post("/doc/chunk/update", response_model=bool)
-async def update_doc_chunk(
-    form_data: DocUpdateForm, request: Request, user=Depends(get_verified_user)
-):
-    if (
-        (
-            not Docs.get_doc_by_name(form_data.collection_name)
-            or Docs.get_doc_by_name(form_data.collection_name).user_id != user.id
-        )
-        and user.role != "admin"
-        and not has_permission(user.id, "knowledge.update", get_role_default_permissions(request, user.id))
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.delete("/doc/chunk", response_model=bool)
-async def delete_doc_chunk(
-    collection_name: str,
-    chunk_id: str,
-    request: Request,
-    user=Depends(get_verified_user),
-):
-    if (
-        (
-            not Docs.get_doc_by_name(collection_name)
-            or Docs.get_doc_by_name(collection_name).user_id != user.id
-        )
-        and user.role != "admin"
-        and not has_permission(user.id, "knowledge.delete", get_role_default_permissions(request, user.id))
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.get("/export")
-async def export_documents(request: Request, user=Depends(get_verified_user)):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.read", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.get("/reindex/all")
-async def reindex_all_docs(request: Request, user=Depends(get_verified_user)):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.update", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )
-
-
-@router.get("/reindex")
-async def reindex_doc_by_collection_name(
-    collection_name: str, request: Request, user=Depends(get_verified_user)
-):
-    if user.role != "admin" and not has_permission(
-        user.id, "knowledge.update", get_role_default_permissions(request, user.id)
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
-        )

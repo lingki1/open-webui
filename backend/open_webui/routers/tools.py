@@ -19,12 +19,7 @@ from open_webui.constants import ERROR_MESSAGES
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from open_webui.utils.tools import get_tool_specs
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import (
-    has_access,
-    has_permission,
-    get_users_with_access,
-    get_role_default_permissions,
-)
+from open_webui.utils.access_control import has_access, has_permission
 from open_webui.env import SRC_LOG_LEVELS
 
 from open_webui.utils.tools import get_tool_servers_data
@@ -202,11 +197,11 @@ async def create_new_tools(
     user=Depends(get_verified_user),
 ):
     if user.role != "admin" and not has_permission(
-        user.id, "tools.create", get_role_default_permissions(request, user.id)
+        user.id, "workspace.tools", request.app.state.config.USER_PERMISSIONS
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
+            detail=ERROR_MESSAGES.UNAUTHORIZED,
         )
 
     if not form_data.id.isidentifier():
