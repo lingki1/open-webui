@@ -17,12 +17,19 @@ from open_webui.models.folders import Folders
 from open_webui.config import ENABLE_ADMIN_CHAT_ACCESS, ENABLE_ADMIN_EXPORT
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.env import SRC_LOG_LEVELS
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile
 from pydantic import BaseModel
+from starlette.background import BackgroundTask
 
 
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_permission
+from open_webui.utils.access_control import has_permission, get_role_default_permissions
+from open_webui.utils.misc import (
+    get_last_user_message,
+    get_last_user_message_from_message_list,
+    is_last_message_from_user,
+)
+from open_webui.utils.send_email import send_email_in_background
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MODELS"])
@@ -55,9 +62,10 @@ async def get_session_user_chat_list(
 
 @router.delete("/", response_model=bool)
 async def delete_all_user_chats(request: Request, user=Depends(get_verified_user)):
+    default_permissions = get_role_default_permissions(request, user.id)
 
     if user.role in ["user", "premium"] and not has_permission(
-        user.id, "chat.delete", request.app.state.config.USER_PERMISSIONS
+        user.id, "chat.delete", default_permissions
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

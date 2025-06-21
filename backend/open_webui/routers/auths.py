@@ -47,9 +47,10 @@ from open_webui.utils.auth import (
     get_current_user,
     get_password_hash,
     get_http_authorization_cred,
+    verify_password,
 )
 from open_webui.utils.webhook import post_webhook
-from open_webui.utils.access_control import get_permissions
+from open_webui.utils.access_control import get_permissions, get_role_default_permissions
 
 from typing import Optional, List
 
@@ -108,20 +109,9 @@ async def get_session_user(
             secure=WEBUI_AUTH_COOKIE_SECURE,
         )
 
-    # Get role-based permissions configuration from PersistentConfig
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
-    
-    # Get user's role-specific default permissions
-    if user.role in ["user", "premium"]:
-        default_permissions = role_permissions_config.get(
-            user.role, 
-            request.app.state.config.USER_PERMISSIONS
-        )
-    else:
-        # For admin and other roles, use general USER_PERMISSIONS
-        default_permissions = request.app.state.config.USER_PERMISSIONS
-    
-    user_permissions = get_permissions(user.id, default_permissions)
+    user_permissions = get_permissions(
+        user.id, get_role_default_permissions(request, user.id)
+    )
 
     return {
         "token": token,
@@ -420,7 +410,7 @@ async def ldap_auth(request: Request, response: Response, form_data: LdapForm):
                 )
 
                 user_permissions = get_permissions(
-                    user.id, request.app.state.config.USER_PERMISSIONS
+                    user.id, get_role_default_permissions(request, user.id)
                 )
 
                 if (
@@ -542,7 +532,7 @@ async def signin(request: Request, response: Response, form_data: SigninForm):
         )
 
         user_permissions = get_permissions(
-            user.id, request.app.state.config.USER_PERMISSIONS
+            user.id, get_role_default_permissions(request, user.id)
         )
 
         return {
@@ -652,7 +642,7 @@ async def signup(request: Request, response: Response, form_data: SignupForm):
                 )
 
             user_permissions = get_permissions(
-                user.id, request.app.state.config.USER_PERMISSIONS
+                user.id, get_role_default_permissions(request, user.id)
             )
 
             if user_count == 0:

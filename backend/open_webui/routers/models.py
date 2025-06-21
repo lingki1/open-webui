@@ -11,8 +11,14 @@ from open_webui.constants import ERROR_MESSAGES
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 
-from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_access, has_permission
+from open_webui.utils.auth import get_admin_user, get_current_user, get_verified_user
+from open_webui.utils.access_control import (
+    has_access,
+    has_permission,
+    get_users_with_access,
+    get_role_default_permissions,
+)
+from open_webui.utils.pipelines import get_pipelines_for_model
 
 
 router = APIRouter()
@@ -53,11 +59,11 @@ async def create_new_model(
     user=Depends(get_verified_user),
 ):
     if user.role != "admin" and not has_permission(
-        user.id, "workspace.models", request.app.state.config.USER_PERMISSIONS
+        user.id, "workspace.models", get_role_default_permissions(request, user.id)
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=ERROR_MESSAGES.UNAUTHORIZED,
+            detail=ERROR_MESSAGES.ACCESS_PROHIBITED,
         )
 
     model = Models.get_model_by_id(form_data.id)

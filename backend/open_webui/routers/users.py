@@ -25,7 +25,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 
 from open_webui.utils.auth import get_admin_user, get_password_hash, get_verified_user
-from open_webui.utils.access_control import get_permissions, has_permission
+from open_webui.utils.access_control import get_permissions, has_permission, get_role_default_permissions
 
 
 log = logging.getLogger(__name__)
@@ -120,19 +120,19 @@ async def get_user_groups(user=Depends(get_verified_user)):
 
 @router.get("/permissions")
 async def get_user_permissisions(request: Request, user=Depends(get_verified_user)):
-    # Get role-based permissions configuration from PersistentConfig
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
+    # Get role-based permissions configuration
+    role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
     
     # Get user's role-specific default permissions
     user_obj = Users.get_user_by_id(user.id)
     if user_obj and user_obj.role in ["user", "premium"]:
         default_permissions = role_permissions_config.get(
             user_obj.role, 
-            request.app.state.config.USER_PERMISSIONS
+            getattr(request.app.state.config, 'USER_PERMISSIONS', {})
         )
     else:
         # For admin and other roles, use general USER_PERMISSIONS
-        default_permissions = request.app.state.config.USER_PERMISSIONS
+        default_permissions = getattr(request.app.state.config, 'USER_PERMISSIONS', {})
     
     user_permissions = get_permissions(user.id, default_permissions)
     return user_permissions
@@ -188,19 +188,18 @@ class UserPermissions(BaseModel):
 
 @router.get("/default/permissions", response_model=UserPermissions)
 async def get_default_user_permissions(request: Request, user=Depends(get_admin_user)):
-    user_permissions = request.app.state.config.USER_PERMISSIONS
     return {
         "workspace": WorkspacePermissions(
-            **user_permissions.get("workspace", {})
+            **request.app.state.config.USER_PERMISSIONS.get("workspace", {})
         ),
         "sharing": SharingPermissions(
-            **user_permissions.get("sharing", {})
+            **request.app.state.config.USER_PERMISSIONS.get("sharing", {})
         ),
         "chat": ChatPermissions(
-            **user_permissions.get("chat", {})
+            **request.app.state.config.USER_PERMISSIONS.get("chat", {})
         ),
         "features": FeaturesPermissions(
-            **user_permissions.get("features", {})
+            **request.app.state.config.USER_PERMISSIONS.get("features", {})
         ),
     }
 
@@ -209,7 +208,6 @@ async def get_default_user_permissions(request: Request, user=Depends(get_admin_
 async def update_default_user_permissions(
     request: Request, form_data: UserPermissions, user=Depends(get_admin_user)
 ):
-    # Use PersistentConfig assignment to trigger automatic persistence
     request.app.state.config.USER_PERMISSIONS = form_data.model_dump()
     return request.app.state.config.USER_PERMISSIONS
 
@@ -231,10 +229,10 @@ async def get_default_permissions_by_role(
             detail="Invalid role. Must be 'user' or 'premium'."
         )
     
-    # Get role-based permissions from PersistentConfig
-    role_permissions_config = request.app.state.config.ROLE_PERMISSIONS
+    # Get role-based permissions or fall back to general USER_PERMISSIONS
+    role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
     role_permissions = role_permissions_config.get(role, 
-                        request.app.state.config.USER_PERMISSIONS)
+                        getattr(request.app.state.config, 'USER_PERMISSIONS', {}))
     
     return {
         "workspace": WorkspacePermissions(
@@ -265,16 +263,16 @@ async def update_default_permissions_by_role(
             detail="Invalid role. Must be 'user' or 'premium'."
         )
     
-    # Get current role permissions configuration
-    current_role_permissions = dict(request.app.state.config.ROLE_PERMISSIONS)
+    # Safely get the current role permissions config
+    role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
     
-    # Update the specific role's permissions
-    current_role_permissions[role] = form_data.model_dump()
+    # Update the specific role
+    role_permissions_config[role] = form_data.model_dump()
     
-    # Save back to PersistentConfig (this triggers automatic persistence)
-    request.app.state.config.ROLE_PERMISSIONS = current_role_permissions
+    # Set the entire dictionary back to trigger the save mechanism in AppConfig
+    request.app.state.config.ROLE_PERMISSIONS = role_permissions_config
     
-    return current_role_permissions[role]
+    return request.app.state.config.ROLE_PERMISSIONS[role]
 
 
 ############################
@@ -310,7 +308,7 @@ async def update_user_settings_by_session_user(
         and not has_permission(
             user.id,
             "features.direct_tool_servers",
-            request.app.state.config.USER_PERMISSIONS,
+            get_role_default_permissions(request, user.id),
         )
     ):
         # If the user is not an admin and does not have permission to use tool servers, remove the key

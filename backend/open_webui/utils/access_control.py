@@ -24,6 +24,28 @@ def get_role_based_permissions(user_id: str, role_permissions_config: Dict[str, 
     return DEFAULT_USER_PERMISSIONS
 
 
+def get_role_default_permissions(
+    request: Any,
+    user_id: str
+) -> Dict[str, Any]:
+    """
+    Get the appropriate default permissions for a user based on their role.
+    """
+    user = Users.get_user_by_id(user_id)
+    if not user:
+        return getattr(request.app.state.config, 'USER_PERMISSIONS', {})
+
+    if user.role in ["user", "premium"]:
+        role_permissions_config = getattr(request.app.state.config, 'ROLE_PERMISSIONS', {})
+        # Fallback to 'user' permissions if 'premium' isn't explicitly set
+        # Then fallback to general USER_PERMISSIONS
+        return role_permissions_config.get(user.role, 
+            role_permissions_config.get('user', getattr(request.app.state.config, 'USER_PERMISSIONS', {})))
+    
+    # For admin, pending, etc., they use the general permissions (or have no permissions)
+    return getattr(request.app.state.config, 'USER_PERMISSIONS', {})
+
+
 def fill_missing_permissions(
     permissions: Dict[str, Any], default_permissions: Dict[str, Any]
 ) -> Dict[str, Any]:

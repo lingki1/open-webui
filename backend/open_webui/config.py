@@ -1194,17 +1194,8 @@ USER_PERMISSIONS = PersistentConfig(
     DEFAULT_USER_PERMISSIONS,
 )
 
-# Role-based permissions configuration
-# 为每个角色创建独立的权限字典副本，避免引用同一个对象
-DEFAULT_ROLE_PERMISSIONS = {
-    "user": json.loads(json.dumps(DEFAULT_USER_PERMISSIONS)),
-    "premium": json.loads(json.dumps(DEFAULT_USER_PERMISSIONS)),
-}
-
 ROLE_PERMISSIONS = PersistentConfig(
-    "ROLE_PERMISSIONS",
-    "user.role_permissions",
-    DEFAULT_ROLE_PERMISSIONS,
+    "ROLE_PERMISSIONS", "role_permissions", {}
 )
 
 ENABLE_CHANNELS = PersistentConfig(
