@@ -136,6 +136,29 @@
 
 	let taskIds = null;
 
+	// 动态背景图片计算
+	$: backgroundImageUrl = (() => {
+		// 如果有多个模型或没有模型，使用默认背景
+		if (selectedModelIds.length !== 1 || !selectedModelIds[0]) {
+			return $settings?.backgroundImageUrl ?? null;
+		}
+		
+		// 获取当前选中的模型
+		const selectedModel = $models.find((m) => m.id === selectedModelIds[0]);
+		
+		// 检查是否为工作空间模型（preset）并且有自定义图片
+		if ((selectedModel as any)?.preset && selectedModel?.info?.meta?.profile_image_url) {
+			// 排除默认图标
+			const profileImage = selectedModel.info.meta.profile_image_url;
+			if (profileImage && profileImage !== '/static/favicon.png') {
+				return profileImage;
+			}
+		}
+		
+		// 否则使用默认背景
+		return $settings?.backgroundImageUrl ?? null;
+	})();
+
 	// Chat Input
 	let prompt = '';
 	let chatFiles = [];
@@ -2031,12 +2054,12 @@
 >
 	{#if !loading}
 		<div in:fade={{ duration: 50 }} class="w-full h-full flex flex-col">
-			{#if $settings?.backgroundImageUrl ?? null}
+			{#if backgroundImageUrl}
 				<div
 					class="absolute {$showSidebar
 						? 'md:max-w-[calc(100%-260px)] md:translate-x-[260px]'
 						: ''} top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
-					style="background-image: url({$settings.backgroundImageUrl})  "
+					style="background-image: url({backgroundImageUrl})  "
 				/>
 
 				<div
@@ -2114,7 +2137,7 @@
 									bind:webSearchEnabled
 									bind:atSelectedModel
 									toolServers={$toolServers}
-									transparentBackground={$settings?.backgroundImageUrl ?? false}
+									transparentBackground={backgroundImageUrl ?? false}
 									{stopResponse}
 									{createMessagePair}
 									onChange={(input) => {
@@ -2172,7 +2195,7 @@
 									bind:codeInterpreterEnabled
 									bind:webSearchEnabled
 									bind:atSelectedModel
-									transparentBackground={$settings?.backgroundImageUrl ?? false}
+									transparentBackground={backgroundImageUrl ?? false}
 									toolServers={$toolServers}
 									{stopResponse}
 									{createMessagePair}
