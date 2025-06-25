@@ -180,6 +180,7 @@
 	"Chat is locked to workspace model": "对话已锁定到工作空间模型",
 	"Chat locked to workspace model: {{modelName}}": "对话已锁定到工作空间模型: {{modelName}}",
 	"Chat Model Lock": "对话模型锁定",
+	"Model is locked, please create a new chat to switch to other models": "此模型被锁定，请新建窗口切换其他模型",
 	"Chat Overview": "对话概述",
 	"Chat Permissions": "对话权限",
 	"Chat Tags Auto-Generation": "自动生成对话标签",

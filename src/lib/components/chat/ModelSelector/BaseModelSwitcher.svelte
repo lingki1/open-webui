@@ -74,30 +74,32 @@
 	closeFocus={false}
 >
 	<DropdownMenu.Trigger
-		class="relative w-full font-primary"
+		class="relative {$mobile ? 'max-w-[12rem]' : 'w-full'} font-primary"
 		aria-label={placeholder}
 		{disabled}
 	>
 		<button
-			class="flex w-full text-left px-0.5 outline-hidden bg-transparent truncate {triggerClassName} justify-between font-medium placeholder-gray-400 focus:outline-hidden {disabled ? 'opacity-50 cursor-not-allowed' : ''}"
+			class="flex {$mobile ? 'max-w-[12rem]' : 'w-full'} text-left px-0.5 outline-hidden bg-transparent truncate {triggerClassName} justify-between font-medium placeholder-gray-400 focus:outline-hidden {disabled ? 'opacity-50 cursor-not-allowed' : ''}"
 			type="button"
 			{disabled}
 		>
-			{#if selectedBaseModel}
-				{selectedBaseModel.name}
-			{:else}
-				{placeholder}
-			{/if}
-			<ChevronDown className="self-center ml-2 size-3" strokeWidth="2.5" />
+			<span class="truncate {$mobile ? 'max-w-[8rem]' : ''}">
+				{#if selectedBaseModel}
+					{selectedBaseModel.name}
+				{:else}
+					{placeholder}
+				{/if}
+			</span>
+			<ChevronDown className="self-center {$mobile ? 'ml-1' : 'ml-2'} size-3 flex-shrink-0" strokeWidth="2.5" />
 		</button>
 	</DropdownMenu.Trigger>
 
 	<DropdownMenu.Content
-		class="z-40 {$mobile ? 'w-full' : `${className}`} max-w-[calc(100vw-1rem)] justify-start rounded-xl bg-white dark:bg-gray-850 dark:text-white shadow-lg outline-hidden {$mobile ? '' : 'ml-auto'}"
+		class="z-40 {$mobile ? 'w-full' : `${className}`} max-w-[calc(100vw-1rem)] justify-start rounded-xl bg-white dark:bg-gray-850 dark:text-white shadow-lg outline-hidden {$mobile ? '' : 'mr-0'}"
 		transition={flyAndScale}
 		side={$mobile ? 'bottom' : 'bottom'}
+		align={$mobile ? 'center' : 'start'}
 		sideOffset={3}
-		style={$mobile ? '' : 'transform: translateX(1rem);'}
 	>
 		<!-- 搜索框，完全模仿原始设计 -->
 		<div class="flex items-center gap-2.5 px-5 mt-3.5 mb-1.5">
@@ -119,9 +121,9 @@
 					class="flex w-full font-medium line-clamp-1 select-none items-start rounded-button py-2 pl-3 pr-1.5 text-sm text-gray-700 dark:text-gray-100 outline-hidden transition-all duration-75 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer data-highlighted:bg-muted {selectedBaseModelId === model.id ? 'bg-gray-100 dark:bg-gray-800' : ''}"
 					data-base-model-selected={selectedModelIdx === index}
 					on:click={() => selectBaseModel(model.id)}
-					on:mouseenter={() => {
+					on:mouseenter={!$mobile ? () => {
 						selectedModelIdx = index;
-					}}
+					} : undefined}
 				>
 					<div class="flex-1 min-w-0 text-left">
 						<div class="font-medium truncate text-left" title={model.name}>

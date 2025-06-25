@@ -4,7 +4,7 @@
 	import { getContext, tick } from 'svelte';
 	import dayjs from '$lib/dayjs';
 
-	import { mobile, settings, user } from '$lib/stores';
+	import { mobile, settings, user, chatModelLock, chatId } from '$lib/stores';
 
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import { copyToClipboard, sanitizeResponseContent } from '$lib/utils';
@@ -13,6 +13,7 @@
 	import ModelItemMenu from './ModelItemMenu.svelte';
 	import EllipsisHorizontal from '$lib/components/icons/EllipsisHorizontal.svelte';
 	import { toast } from 'svelte-sonner';
+	import { ChatModelLockManager } from '$lib/utils/chat-model-lock';
 
 	const i18n = getContext('i18n');
 
@@ -38,6 +39,11 @@
 	};
 
 	let showMenu = false;
+
+	// 检查当前模型是否被锁定
+	$: currentChatId = $chatId;
+	$: isCurrentChatLocked = currentChatId && ChatModelLockManager.isChatLocked(currentChatId);
+	$: isThisModelLocked = isCurrentChatLocked && value === item.value;
 </script>
 
 <button
@@ -248,3 +254,10 @@
 		{/if}
 	</div>
 </button>
+
+<!-- 锁定提示信息 -->
+{#if isThisModelLocked}
+	<div class="px-3 py-1 text-xs text-gray-500 dark:text-gray-400 italic">
+		{$i18n.t('Model is locked, please create a new chat to switch to other models')}
+	</div>
+{/if}

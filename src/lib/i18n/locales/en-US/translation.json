@@ -179,6 +179,7 @@
 	"Chat direction": "",
 	"Chat is locked to workspace model": "Chat is locked to workspace model",
 	"Chat locked to workspace model: {{modelName}}": "Chat locked to workspace model: {{modelName}}",
+	"Model is locked, please create a new chat to switch to other models": "Model is locked, please create a new chat to switch to other models",
 	"Chat Model Lock": "Chat Model Lock",
 	"Chat Overview": "",
 	"Chat Permissions": "",
