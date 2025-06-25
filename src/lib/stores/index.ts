@@ -28,7 +28,7 @@ export const USAGE_POOL: Writable<null | string[]> = writable(null);
 export const theme = writable('system');
 
 export const shortCodesToEmojis = writable(
-	Object.entries(emojiShortCodes).reduce((acc, [key, value]) => {
+	Object.entries(emojiShortCodes).reduce((acc: { [key: string]: string }, [key, value]) => {
 		if (typeof value === 'string') {
 			acc[value] = key;
 		} else {
@@ -53,6 +53,9 @@ export const tags = writable([]);
 
 export const models: Writable<Model[]> = writable([]);
 
+// 工作空间模型动态基础模型映射
+export const dynamicBaseModels: Writable<{ [workspaceModelId: string]: string }> = writable({});
+
 export const prompts: Writable<null | Prompt[]> = writable(null);
 export const knowledge: Writable<null | Document[]> = writable(null);
 export const tools = writable(null);
@@ -62,7 +65,9 @@ export const toolServers = writable([]);
 
 export const banners: Writable<Banner[]> = writable([]);
 
-export const settings: Writable<Settings> = writable({});
+export const settings: Writable<Settings> = writable({
+	chatDirection: 'LTR'
+});
 
 export const showSidebar = writable(false);
 export const showSearch = writable(false);
@@ -158,6 +163,10 @@ type Settings = {
 	num_batch?: string;
 	num_keep?: string;
 	options?: ModelOptions;
+
+	// 工作空间模型动态基础模型映射
+	dynamicBaseModels?: { [workspaceModelId: string]: string };
+	pinnedModels?: string[];
 };
 
 type ModelOptions = {

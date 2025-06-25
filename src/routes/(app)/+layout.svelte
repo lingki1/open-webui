@@ -18,6 +18,7 @@
 	import { getTools } from '$lib/apis/tools';
 	import { getBanners } from '$lib/apis/configs';
 	import { getUserSettings } from '$lib/apis/users';
+	import { WorkspaceModelManager } from '$lib/utils/models';
 
 	import { WEBUI_VERSION } from '$lib/constants';
 	import { compareVersion } from '$lib/utils';
@@ -112,6 +113,23 @@
 					$config?.features?.enable_direct_connections && ($settings?.directConnections ?? null)
 				)
 			);
+
+			// 初始化工作空间模型管理
+			try {
+				// 从用户设置加载动态基础模型映射
+				WorkspaceModelManager.loadDynamicBaseModels();
+				
+				// 清理无效的映射（异步执行，不阻塞应用启动）
+				WorkspaceModelManager.cleanupInvalidMappings().catch(error => {
+					console.error('清理无效映射时出错:', error);
+				});
+				
+				// 输出统计信息用于调试
+				const stats = WorkspaceModelManager.getWorkspaceModelStats();
+				console.log('工作空间模型统计:', stats);
+			} catch (error) {
+				console.error('初始化工作空间模型管理时出错:', error);
+			}
 
 			banners.set(await getBanners(localStorage.token));
 			tools.set(await getTools(localStorage.token));

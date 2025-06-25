@@ -10,6 +10,8 @@
 - [常见问题](#常见问题)
 
 ---
+   uvicorn open_webui.main:app --reload --host 0.0.0.0 --port 8080
+
 
 ## 🔨 构建镜像 (Docker Build)
 

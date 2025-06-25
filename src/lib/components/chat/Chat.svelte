@@ -299,7 +299,10 @@
 	};
 
 	const chatEventHandler = async (event, cb) => {
-		console.log(event);
+		// 只在非chat:completion事件时打印，减少重复日志
+		if (event?.data?.type !== 'chat:completion') {
+			console.log('Chat event:', event?.data?.type, event);
+		}
 
 		if (event.chat_id === $chatId) {
 			await tick();
@@ -1352,7 +1355,39 @@
 			);
 		}
 
-		console.log(data);
+		// 显示流式响应进度，但减少打印频率
+		if (content) {
+			// 每50个字符打印一次进度，避免过于频繁
+			const contentLength = message.content?.length || 0;
+			if (contentLength % 50 === 0 || done) {
+				console.log(`Streaming progress [${message.model}]:`, {
+					contentLength,
+					done,
+					lastChunk: content?.substring(0, 30) + (content?.length > 30 ? '...' : '')
+				});
+			}
+		} else if (choices && !done) {
+			// 对于choices格式的流式响应，也显示进度
+			const value = choices[0]?.delta?.content ?? '';
+			if (value && message.content?.length % 50 === 0) {
+				console.log(`Streaming progress [${message.model}]:`, {
+					contentLength: message.content?.length || 0,
+					lastChunk: value.substring(0, 30) + (value.length > 30 ? '...' : '')
+				});
+			}
+		}
+		
+		// 最终完成时的汇总信息
+		if (done) {
+			console.log('Chat completion finished:', {
+				messageId: message.id,
+				model: message.model,
+				contentLength: message.content?.length || 0,
+				hasUsage: !!usage,
+				finalContent: message.content?.substring(0, 100) + (message.content?.length > 100 ? '...' : '')
+			});
+		}
+		
 		if (autoScroll) {
 			scrollToBottom();
 		}
@@ -1363,7 +1398,10 @@
 	//////////////////////////
 
 	const submitPrompt = async (userPrompt, { _raw = false } = {}) => {
-		console.log('submitPrompt', userPrompt, $chatId);
+		// 只在debug模式下打印详细提交信息
+		if (import.meta.env.DEV) {
+			console.log('submitPrompt:', { userPrompt: userPrompt?.substring(0, 100) + '...', chatId: $chatId });
+		}
 
 		const messages = createMessagesList(history, history.currentId);
 		const _selectedModels = selectedModels.map((modelId) =>
@@ -1536,7 +1574,10 @@
 
 		await Promise.all(
 			selectedModelIds.map(async (modelId, _modelIdx) => {
-				console.log('modelId', modelId);
+				// 只在debug模式下打印modelId，避免生产环境噪音
+				if (import.meta.env.DEV) {
+					console.log('Sending prompt to model:', modelId);
+				}
 				const model = $models.filter((m) => m.id === modelId).at(0);
 
 				if (model) {

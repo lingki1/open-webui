@@ -267,7 +267,7 @@ export const getOpenAIModels = async (token: string, urlIdx?: number) => {
 
 export const verifyOpenAIConnection = async (
 	token: string = '',
-	connection: dict = {},
+	connection: Record<string, any> = {},
 	direct: boolean = false
 ) => {
 	const { url, key, config } = connection;
@@ -335,28 +335,9 @@ export const chatCompletion = async (
 	body: object,
 	url: string = `${WEBUI_BASE_URL}/api`
 ): Promise<[Response | null, AbortController]> => {
-	const controller = new AbortController();
-	let error = null;
-
-	const res = await fetch(`${url}/chat/completions`, {
-		signal: controller.signal,
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify(body)
-	}).catch((err) => {
-		console.error(err);
-		error = err;
-		return null;
-	});
-
-	if (error) {
-		throw error;
-	}
-
-	return [res, controller];
+	// 使用拦截器增强的版本
+	const { chatCompletionWithInterceptors } = await import('../api-client');
+	return chatCompletionWithInterceptors(token, body, url);
 };
 
 export const generateOpenAIChatCompletion = async (
@@ -364,30 +345,9 @@ export const generateOpenAIChatCompletion = async (
 	body: object,
 	url: string = `${WEBUI_BASE_URL}/api`
 ) => {
-	let error = null;
-
-	const res = await fetch(`${url}/chat/completions`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${token}`,
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify(body)
-	})
-		.then(async (res) => {
-			if (!res.ok) throw await res.json();
-			return res.json();
-		})
-		.catch((err) => {
-			error = `${err?.detail ?? err}`;
-			return null;
-		});
-
-	if (error) {
-		throw error;
-	}
-
-	return res;
+	// 使用拦截器增强的版本
+	const { generateChatCompletionWithInterceptors } = await import('../api-client');
+	return generateChatCompletionWithInterceptors(token, body, url);
 };
 
 export const synthesizeOpenAISpeech = async (
