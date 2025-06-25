@@ -89,6 +89,7 @@
 	import Navbar from '$lib/components/chat/Navbar.svelte';
 	import ChatControls from './ChatControls.svelte';
 	import EventConfirmDialog from '../common/ConfirmDialog.svelte';
+	import WelcomeMessageModal from '../common/WelcomeMessageModal.svelte';
 	import Placeholder from './Placeholder.svelte';
 	import NotificationToast from '../NotificationToast.svelte';
 	import Spinner from '../common/Spinner.svelte';
@@ -138,6 +139,13 @@
 	};
 
 	let taskIds = null;
+
+	// 开场白相关状态
+	let showWelcomeModal = false;
+	let currentWelcomeMessage = null;
+	let currentWelcomeModelName = '';
+	let welcomeShownInSession = new Set(); // 记录在当前会话中已显示过开场白的模型
+	let userHasStartedTyping = false; // 标记用户是否已开始输入
 
 	// 动态背景图片计算
 	$: backgroundImageUrl = (() => {
@@ -201,6 +209,10 @@
 				// 处理对话切换时的锁定状态
 				await handleChatSwitchLock(chatIdProp);
 				
+				// 重置用户输入状态，允许在新对话中显示开场白
+				userHasStartedTyping = false;
+				welcomeShownInSession.clear();
+				
 				await tick();
 				loading = false;
 				window.setTimeout(() => scrollToBottom(), 0);
@@ -234,6 +246,64 @@
 			resetInput();
 		}
 		oldSelectedModelIds = selectedModelIds;
+
+		// 检查是否需要显示开场白
+		checkWelcomeMessage();
+	};
+
+	// 检查是否需要显示开场白
+	const checkWelcomeMessage = () => {
+		// 如果用户已经开始输入，则不显示开场白
+		if (userHasStartedTyping) {
+			return;
+		}
+
+		// 如果当前只选择了一个模型
+		if (selectedModelIds.length === 1 && selectedModelIds[0]) {
+			const modelId = selectedModelIds[0];
+			const model = $models.find((m) => m.id === modelId);
+
+			// 检查是否为工作空间模型且有开场白配置
+			if (model?.preset && model?.info?.meta?.welcome_message?.enabled) {
+				const welcomeMessage = model.info.meta.welcome_message;
+				
+				// 检查是否有内容
+				if (welcomeMessage.content && welcomeMessage.content.trim() !== '') {
+					// 检查显示策略
+					const shouldShow = !welcomeMessage.show_once || !welcomeShownInSession.has(modelId);
+					
+					if (shouldShow) {
+						// 显示开场白
+						currentWelcomeMessage = welcomeMessage;
+						currentWelcomeModelName = model.name;
+						showWelcomeModal = true;
+						
+						// 记录已显示
+						welcomeShownInSession.add(modelId);
+					}
+				}
+			}
+		}
+	};
+
+	// 处理开场白弹框关闭事件
+	const handleWelcomeModalClose = () => {
+		showWelcomeModal = false;
+		currentWelcomeMessage = null;
+		currentWelcomeModelName = '';
+	};
+
+	// 处理开始对话事件
+	const handleStartChat = () => {
+		showWelcomeModal = false;
+		currentWelcomeMessage = null;
+		currentWelcomeModelName = '';
+		
+		// 聚焦到输入框
+		const chatInput = document.getElementById('chat-input');
+		if (chatInput) {
+			chatInput.focus();
+		}
 	};
 
 	const resetInput = () => {
@@ -244,6 +314,11 @@
 		webSearchEnabled = false;
 		imageGenerationEnabled = false;
 		codeInterpreterEnabled = false;
+
+		// 重置开场白相关状态
+		showWelcomeModal = false;
+		currentWelcomeMessage = null;
+		currentWelcomeModelName = '';
 	};
 
 	// 处理对话切换时的锁定状态
@@ -2141,6 +2216,14 @@
 	}}
 />
 
+<WelcomeMessageModal
+	bind:show={showWelcomeModal}
+	welcomeMessage={currentWelcomeMessage}
+	modelName={currentWelcomeModelName}
+	on:close={handleWelcomeModalClose}
+	on:startChat={handleStartChat}
+/>
+
 <div
 	class="h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
 		? '  md:max-w-[calc(100%-260px)]'
@@ -2260,6 +2343,9 @@
 									}}
 									on:submit={async (e) => {
 										if (e.detail || files.length > 0) {
+											// 标记用户已开始输入，之后不再显示开场白
+											userHasStartedTyping = true;
+											
 											await tick();
 											submitPrompt(
 												($settings?.richTextInput ?? true)
@@ -2305,6 +2391,9 @@
 									}}
 									on:submit={async (e) => {
 										if (e.detail || files.length > 0) {
+											// 标记用户已开始输入，之后不再显示开场白
+											userHasStartedTyping = true;
+											
 											await tick();
 											submitPrompt(
 												($settings?.richTextInput ?? true)

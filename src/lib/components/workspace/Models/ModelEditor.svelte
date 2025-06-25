@@ -14,6 +14,7 @@
 	import { getFunctions } from '$lib/apis/functions';
 	import { getKnowledgeBases } from '$lib/apis/knowledge';
 	import AccessControl from '../common/AccessControl.svelte';
+	import WelcomeMessageEditor from './WelcomeMessageEditor.svelte';
 	import { stringify } from 'postcss';
 	import { toast } from 'svelte-sonner';
 
@@ -92,6 +93,14 @@
 
 	let accessControl = {};
 
+	// 开场白配置
+	let welcomeMessage = {
+		enabled: false,
+		content: '',
+		image_url: null,
+		show_once: true
+	};
+
 	const addUsage = (base_model_id) => {
 		const baseModel = $models.find((m) => m.id === base_model_id);
 
@@ -123,6 +132,15 @@
 
 		info.access_control = accessControl;
 		info.meta.capabilities = capabilities;
+
+		// 保存开场白配置
+		if (welcomeMessage.enabled && welcomeMessage.content.trim() !== '') {
+			info.meta.welcome_message = welcomeMessage;
+		} else {
+			if (info.meta.welcome_message) {
+				delete info.meta.welcome_message;
+			}
+		}
 
 		if (enableDescription) {
 			info.meta.description = info.meta.description.trim() === '' ? null : info.meta.description;
@@ -245,6 +263,11 @@
 				accessControl = model.access_control;
 			} else {
 				accessControl = {};
+			}
+
+			// 处理开场白配置
+			if (model?.meta?.welcome_message) {
+				welcomeMessage = { ...welcomeMessage, ...model.meta.welcome_message };
 			}
 
 			console.log(model?.access_control);
@@ -691,6 +714,15 @@
 								{/if}
 							</div>
 						{/if}
+					</div>
+
+					<hr class=" border-gray-100 dark:border-gray-850 my-1.5" />
+
+					<div class="my-2">
+						<div class="mb-2">
+							<div class="text-sm font-semibold mb-2">{$i18n.t('Welcome Message Settings')}</div>
+							<WelcomeMessageEditor bind:welcomeMessage />
+						</div>
 					</div>
 
 					<hr class=" border-gray-100 dark:border-gray-850 my-1.5" />
