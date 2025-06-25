@@ -36,8 +36,11 @@
 		chatTitle,
 		showArtifacts,
 		tools,
-		toolServers
+		toolServers,
+		chatModelLock
 	} from '$lib/stores';
+	import { ChatModelLockManager } from '$lib/utils/chat-model-lock';
+	import { WorkspaceModelManager } from '$lib/utils/models';
 	import {
 		convertMessagesToHistory,
 		copyToClipboard,
@@ -195,6 +198,9 @@
 			}
 
 			if (chatIdProp && (await loadChat())) {
+				// 处理对话切换时的锁定状态
+				await handleChatSwitchLock(chatIdProp);
+				
 				await tick();
 				loading = false;
 				window.setTimeout(() => scrollToBottom(), 0);
@@ -238,6 +244,41 @@
 		webSearchEnabled = false;
 		imageGenerationEnabled = false;
 		codeInterpreterEnabled = false;
+	};
+
+	// 处理对话切换时的锁定状态
+	const handleChatSwitchLock = async (newChatId: string) => {
+		try {
+			// 如果是新对话，重置锁定状态
+			if (newChatId === 'new') {
+				ChatModelLockManager.resetAllLocks();
+				return;
+			}
+
+			// 如果是现有对话，检查是否需要恢复锁定状态
+			if (chat && chat.models && chat.models.length > 0) {
+				// 检查对话中是否有工作空间模型
+				const workspaceModel = chat.models.find(modelId => 
+					WorkspaceModelManager.isWorkspaceModel(modelId)
+				);
+
+				if (workspaceModel) {
+					// 恢复工作空间模型锁定
+					ChatModelLockManager.lockChatToWorkspaceModel(newChatId, workspaceModel);
+					console.log(`恢复对话 ${newChatId} 的工作空间模型锁定: ${workspaceModel}`);
+				} else {
+					// 对话中没有工作空间模型，确保解锁状态
+					ChatModelLockManager.resetAllLocks();
+				}
+			} else {
+				// 对话没有模型信息，重置锁定状态
+				ChatModelLockManager.resetAllLocks();
+			}
+		} catch (error) {
+			console.error('处理对话切换锁定状态时出错:', error);
+			// 出错时重置锁定状态，确保状态一致性
+			ChatModelLockManager.resetAllLocks();
+		}
 	};
 
 	const setToolIds = async () => {
@@ -2044,13 +2085,26 @@
 	const saveChatHandler = async (_chatId, history) => {
 		if ($chatId == _chatId) {
 			if (!$temporaryChatEnabled) {
-				chat = await updateChatById(localStorage.token, _chatId, {
+				// 准备聊天数据
+				const chatData = {
 					models: selectedModels,
 					history: history,
 					messages: createMessagesList(history, history.currentId),
 					params: params,
 					files: chatFiles
-				});
+				};
+
+				// 如果对话被锁定，在元数据中记录锁定信息
+				const lockState = ChatModelLockManager.getCurrentLockState();
+				if (lockState.isLocked && lockState.lockedChatId === _chatId) {
+					chatData.metadata = {
+						...chatData.metadata,
+						lockedWorkspaceModel: lockState.lockedWorkspaceModelId,
+						lockTimestamp: Date.now()
+					};
+				}
+
+				chat = await updateChatById(localStorage.token, _chatId, chatData);
 				currentChatPage.set(1);
 				await chats.set(await getChatList(localStorage.token, $currentChatPage));
 			}

@@ -43,6 +43,7 @@
 	export let placeholder = 'Select a model';
 	export let searchEnabled = true;
 	export let searchPlaceholder = $i18n.t('Search a model');
+	export let disabled = false;
 
 	export let showTemporaryChatControl = false;
 
@@ -348,6 +349,7 @@
 		class="relative w-full font-primary"
 		aria-label={placeholder}
 		id="model-selector-{id}-button"
+		{disabled}
 	>
 		<button
 			class="flex w-full text-left px-0.5 outline-hidden bg-transparent truncate {triggerClassName} justify-between font-medium placeholder-gray-400 focus:outline-hidden"

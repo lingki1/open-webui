@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { models, showSettings, settings, user, mobile, config, dynamicBaseModels } from '$lib/stores';
+	import { models, showSettings, settings, user, mobile, config, dynamicBaseModels, chatModelLock, chatId } from '$lib/stores';
 	import { onMount, tick, getContext } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import Selector from './ModelSelector/Selector.svelte';
 	import BaseModelSwitcher from './ModelSelector/BaseModelSwitcher.svelte';
 	import Tooltip from '../common/Tooltip.svelte';
 	import { WorkspaceModelManager } from '$lib/utils/models';
+	import { ChatModelLockManager } from '$lib/utils/chat-model-lock';
 
 	import { updateUserSettings } from '$lib/apis/users';
 	const i18n = getContext('i18n');
@@ -14,6 +15,12 @@
 	export let disabled = false;
 
 	export let showSetDefault = true;
+
+	// 锁定状态相关变量
+	$: currentChatId = $chatId;
+	$: lockState = $chatModelLock;
+	$: isCurrentChatLocked = currentChatId && ChatModelLockManager.isChatLocked(currentChatId);
+	$: lockDisplayInfo = currentChatId ? WorkspaceModelManager.getLockDisplayInfo(currentChatId) : { isLocked: false, displayName: null, lockMessage: null };
 
 	const saveDefaultModel = async () => {
 		const hasEmptyModel = selectedModels.filter((it) => it === '');
@@ -46,6 +53,33 @@
 		);
 	}
 
+	// 监听模型选择变化，处理锁定逻辑
+	$: if (selectedModels.length > 0 && selectedModels[0] && currentChatId) {
+		handleModelSelection(selectedModels[0]);
+	}
+
+	const handleModelSelection = (modelId: string) => {
+		// 如果选择了工作空间模型且当前对话未锁定
+		if (WorkspaceModelManager.isWorkspaceModel(modelId) && 
+			!isCurrentChatLocked && 
+			currentChatId && 
+			currentChatId !== 'new') {
+			
+			// 锁定当前对话到此工作空间模型
+			ChatModelLockManager.lockChatToWorkspaceModel(currentChatId, modelId);
+			
+			console.log(`对话 ${currentChatId} 已锁定到工作空间模型 ${modelId}`);
+			
+			// 可选：显示成功提示
+			// toast.success('对话已锁定到工作空间模型');
+		}
+	};
+
+	// 获取可选择的模型列表（考虑锁定状态）
+	$: selectableModels = currentChatId ? 
+		WorkspaceModelManager.getSelectableModels(currentChatId, $models) : 
+		$models.filter(model => !((model?.info?.meta as any)?.hidden ?? false));
+
 	// 处理基础模型切换
 	const handleBaseModelChange = async (event: CustomEvent) => {
 		const { workspaceModelId, baseModelId } = event.detail;
@@ -76,12 +110,13 @@
 					<div class="mr-1 max-w-full">
 						<Selector
 							id={`${selectedModelIdx}`}
-							placeholder={$i18n.t('Select a model')}
-							items={$models.map((model) => ({
+							placeholder={isCurrentChatLocked && lockDisplayInfo.displayName ? lockDisplayInfo.displayName : $i18n.t('Select a model')}
+							items={selectableModels.map((model) => ({
 								value: model.id,
 								label: model.name,
 								model: model
 							}))}
+							disabled={isCurrentChatLocked || disabled}
 							showTemporaryChatControl={$user?.role === 'user'
 								? ($user?.permissions?.chat?.temporary ?? true) &&
 									!($user?.permissions?.chat?.temporary_enforced ?? false)

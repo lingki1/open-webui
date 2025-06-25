@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { models, dynamicBaseModels, settings } from '$lib/stores';
+import { models, dynamicBaseModels, settings, chatModelLock } from '$lib/stores';
 import { updateUserSettings } from '$lib/apis/users';
 import type { Model } from '$lib/stores';
 
@@ -212,6 +212,108 @@ export class WorkspaceModelManager {
 			totalWorkspaceModels: workspaceModels.length,
 			modelsWithDynamicBase: Object.keys(currentMapping).length,
 			availableBaseModels: availableBaseModels.length
+		};
+	}
+
+	/**
+	 * 检查当前对话是否锁定到某个工作空间模型
+	 * @param chatId 对话ID
+	 * @returns 是否锁定
+	 */
+	static isChatLockedToWorkspaceModel(chatId: string): boolean {
+		const lockState = get(chatModelLock);
+		return lockState.isLocked && 
+			   lockState.lockedChatId === chatId && 
+			   !!lockState.lockedWorkspaceModelId && 
+			   this.isWorkspaceModel(lockState.lockedWorkspaceModelId);
+	}
+
+	/**
+	 * 获取对话锁定的工作空间模型
+	 * @param chatId 对话ID
+	 * @returns 锁定的工作空间模型对象，如果未锁定则返回null
+	 */
+	static getLockedWorkspaceModel(chatId: string): Model | null {
+		const lockState = get(chatModelLock);
+		if (!lockState.isLocked || lockState.lockedChatId !== chatId || !lockState.lockedWorkspaceModelId) {
+			return null;
+		}
+
+		const allModels = get(models);
+		return allModels.find(m => m.id === lockState.lockedWorkspaceModelId) || null;
+	}
+
+	/**
+	 * 过滤可选择的模型（考虑锁定状态）
+	 * @param chatId 对话ID
+	 * @param allModels 所有模型列表
+	 * @returns 可选择的模型列表
+	 */
+	static getSelectableModels(chatId: string, allModels?: Model[]): Model[] {
+		const modelList = allModels || get(models);
+		
+		// 如果对话未锁定，返回所有非隐藏模型
+		if (!this.isChatLockedToWorkspaceModel(chatId)) {
+			return modelList.filter(model => 
+				!((model?.info?.meta as any)?.hidden ?? false)
+			);
+		}
+
+		// 如果对话已锁定，只返回锁定的工作空间模型
+		const lockedModel = this.getLockedWorkspaceModel(chatId);
+		return lockedModel ? [lockedModel] : [];
+	}
+
+	/**
+	 * 检查是否可以在对话中选择指定模型
+	 * @param chatId 对话ID
+	 * @param modelId 要检查的模型ID
+	 * @returns 是否可以选择
+	 */
+	static canSelectModelInChat(chatId: string, modelId: string): boolean {
+		// 如果对话未锁定，可以选择任何非隐藏模型
+		if (!this.isChatLockedToWorkspaceModel(chatId)) {
+			const allModels = get(models);
+			const model = allModels.find(m => m.id === modelId);
+			return model ? !((model?.info?.meta as any)?.hidden ?? false) : false;
+		}
+
+		// 如果对话已锁定，只能选择锁定的工作空间模型
+		const lockState = get(chatModelLock);
+		return lockState.lockedWorkspaceModelId === modelId;
+	}
+
+	/**
+	 * 获取工作空间模型锁定状态的显示信息
+	 * @param chatId 对话ID
+	 * @returns 锁定状态显示信息
+	 */
+	static getLockDisplayInfo(chatId: string): {
+		isLocked: boolean;
+		displayName: string | null;
+		lockMessage: string | null;
+	} {
+		if (!this.isChatLockedToWorkspaceModel(chatId)) {
+			return {
+				isLocked: false,
+				displayName: null,
+				lockMessage: null
+			};
+		}
+
+		const lockedModel = this.getLockedWorkspaceModel(chatId);
+		if (!lockedModel) {
+			return {
+				isLocked: true,
+				displayName: null,
+				lockMessage: '锁定的模型不可用'
+			};
+		}
+
+		return {
+			isLocked: true,
+			displayName: this.getDisplayName(lockedModel.id),
+			lockMessage: `此对话已锁定到工作空间模型: ${lockedModel.name}`
 		};
 	}
 } 

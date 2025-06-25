@@ -56,6 +56,13 @@ export const models: Writable<Model[]> = writable([]);
 // 工作空间模型动态基础模型映射
 export const dynamicBaseModels: Writable<{ [workspaceModelId: string]: string }> = writable({});
 
+// 对话模型锁定状态
+export const chatModelLock: Writable<ChatModelLockState> = writable({
+	isLocked: false,
+	lockedWorkspaceModelId: null,
+	lockedChatId: null
+});
+
 export const prompts: Writable<null | Prompt[]> = writable(null);
 export const knowledge: Writable<null | Document[]> = writable(null);
 export const tools = writable(null);
@@ -137,6 +144,12 @@ type OllamaModelDetails = {
 	families: string[] | null;
 	parameter_size: string;
 	quantization_level: string;
+};
+
+type ChatModelLockState = {
+	isLocked: boolean;
+	lockedWorkspaceModelId: string | null;
+	lockedChatId: string | null;
 };
 
 type Settings = {
