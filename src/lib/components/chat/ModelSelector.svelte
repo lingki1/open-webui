@@ -127,8 +127,8 @@
 					</div>
 				</div>
 
-				<!-- 工作空间模型基础模型切换器 - 放在主选择器旁边 -->
-				{#if selectedModel && WorkspaceModelManager.isWorkspaceModel(selectedModel)}
+				<!-- 桌面端：工作空间模型基础模型切换器放在主选择器旁边 -->
+				{#if selectedModel && WorkspaceModelManager.isWorkspaceModel(selectedModel) && !$mobile}
 					<div class="flex-shrink-0">
 						<BaseModelSwitcher
 							workspaceModelId={selectedModel}
@@ -199,6 +199,21 @@
 					{/if}
 				{/if}
 			</div>
+
+			<!-- 手机端：工作空间模型基础模型切换器显示在下方 -->
+			{#if selectedModel && WorkspaceModelManager.isWorkspaceModel(selectedModel) && $mobile}
+				<div class="mt-2 w-full">
+					<BaseModelSwitcher
+						workspaceModelId={selectedModel}
+						selectedBaseModelId={WorkspaceModelManager.getCurrentBaseModelId(selectedModel) || ''}
+						placeholder="选择基础模型"
+						className="w-full"
+						triggerClassName="text-xs"
+						{disabled}
+						on:baseModelChanged={handleBaseModelChange}
+					/>
+				</div>
+			{/if}
 		</div>
 	{/each}
 </div>
