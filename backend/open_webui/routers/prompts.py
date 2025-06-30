@@ -9,7 +9,7 @@ from open_webui.models.prompts import (
 from open_webui.constants import ERROR_MESSAGES
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_access, has_permission
+from open_webui.utils.access_control import has_access, has_permission, get_user_permissions_with_role_inheritance
 
 router = APIRouter()
 
@@ -47,8 +47,15 @@ async def get_prompt_list(user=Depends(get_verified_user)):
 async def create_new_prompt(
     request: Request, form_data: PromptForm, user=Depends(get_verified_user)
 ):
+    # Get user permissions with role inheritance for proper permission checking
+    default_permissions = get_user_permissions_with_role_inheritance(
+        user.id, 
+        request.app.state.config.ROLE_PERMISSIONS,
+        request.app.state.config.USER_PERMISSIONS
+    )
+    
     if user.role != "admin" and not has_permission(
-        user.id, "workspace.prompts", request.app.state.config.USER_PERMISSIONS
+        user.id, "workspace.prompts", default_permissions
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

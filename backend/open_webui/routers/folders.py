@@ -25,7 +25,7 @@ from fastapi.responses import FileResponse, StreamingResponse
 
 
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_permission
+from open_webui.utils.access_control import has_permission, get_user_permissions_with_role_inheritance
 
 
 log = logging.getLogger(__name__)
@@ -233,8 +233,15 @@ async def update_folder_is_expanded_by_id(
 async def delete_folder_by_id(
     request: Request, id: str, user=Depends(get_verified_user)
 ):
+    # Get user permissions with role inheritance for proper permission checking
+    default_permissions = get_user_permissions_with_role_inheritance(
+        user.id, 
+        request.app.state.config.ROLE_PERMISSIONS,
+        request.app.state.config.USER_PERMISSIONS
+    )
+    
     chat_delete_permission = has_permission(
-        user.id, "chat.delete", request.app.state.config.USER_PERMISSIONS
+        user.id, "chat.delete", default_permissions
     )
 
     if user.role != "admin" and not chat_delete_permission:

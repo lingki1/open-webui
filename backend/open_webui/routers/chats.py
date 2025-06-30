@@ -22,7 +22,7 @@ from pydantic import BaseModel
 
 
 from open_webui.utils.auth import get_admin_user, get_verified_user
-from open_webui.utils.access_control import has_permission
+from open_webui.utils.access_control import has_permission, get_user_permissions_with_role_inheritance
 
 log = logging.getLogger(__name__)
 log.setLevel(SRC_LOG_LEVELS["MODELS"])
@@ -55,9 +55,15 @@ async def get_session_user_chat_list(
 
 @router.delete("/", response_model=bool)
 async def delete_all_user_chats(request: Request, user=Depends(get_verified_user)):
+    # Get user permissions with role inheritance for proper permission checking
+    default_permissions = get_user_permissions_with_role_inheritance(
+        user.id, 
+        request.app.state.config.ROLE_PERMISSIONS,
+        request.app.state.config.USER_PERMISSIONS
+    )
 
     if user.role in ["user", "premium"] and not has_permission(
-        user.id, "chat.delete", request.app.state.config.USER_PERMISSIONS
+        user.id, "chat.delete", default_permissions
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -537,8 +543,15 @@ async def delete_chat_by_id(request: Request, id: str, user=Depends(get_verified
 
         return result
     else:
+        # Get user permissions with role inheritance for proper permission checking
+        default_permissions = get_user_permissions_with_role_inheritance(
+            user.id, 
+            request.app.state.config.ROLE_PERMISSIONS,
+            request.app.state.config.USER_PERMISSIONS
+        )
+        
         if not has_permission(
-            user.id, "chat.delete", request.app.state.config.USER_PERMISSIONS
+            user.id, "chat.delete", default_permissions
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -684,8 +697,15 @@ async def archive_chat_by_id(id: str, user=Depends(get_verified_user)):
 
 @router.post("/{id}/share", response_model=Optional[ChatResponse])
 async def share_chat_by_id(request: Request, id: str, user=Depends(get_verified_user)):
+    # Get user permissions with role inheritance for proper permission checking
+    default_permissions = get_user_permissions_with_role_inheritance(
+        user.id, 
+        request.app.state.config.ROLE_PERMISSIONS,
+        request.app.state.config.USER_PERMISSIONS
+    )
+    
     if not has_permission(
-        user.id, "chat.share", request.app.state.config.USER_PERMISSIONS
+        user.id, "chat.share", default_permissions
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

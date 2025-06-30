@@ -21,7 +21,7 @@ from open_webui.storage.provider import Storage
 
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.utils.auth import get_verified_user
-from open_webui.utils.access_control import has_access, has_permission
+from open_webui.utils.access_control import has_access, has_permission, get_user_permissions_with_role_inheritance
 
 
 from open_webui.env import SRC_LOG_LEVELS
@@ -142,8 +142,15 @@ async def get_knowledge_list(user=Depends(get_verified_user)):
 async def create_new_knowledge(
     request: Request, form_data: KnowledgeForm, user=Depends(get_verified_user)
 ):
+    # Get user permissions with role inheritance for proper permission checking
+    default_permissions = get_user_permissions_with_role_inheritance(
+        user.id, 
+        request.app.state.config.ROLE_PERMISSIONS,
+        request.app.state.config.USER_PERMISSIONS
+    )
+    
     if user.role != "admin" and not has_permission(
-        user.id, "workspace.knowledge", request.app.state.config.USER_PERMISSIONS
+        user.id, "workspace.knowledge", default_permissions
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

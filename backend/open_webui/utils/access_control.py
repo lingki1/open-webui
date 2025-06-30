@@ -24,6 +24,39 @@ def get_role_based_permissions(user_id: str, role_permissions_config: Dict[str, 
     return DEFAULT_USER_PERMISSIONS
 
 
+def get_user_permissions_with_role_inheritance(
+    user_id: str, 
+    role_permissions_config: Dict[str, Any], 
+    user_permissions_config: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Get user permissions with proper role inheritance.
+    
+    This function ensures that role-based permissions are respected before falling back
+    to global USER_PERMISSIONS. This is the correct way to check permissions in 
+    workspace endpoints that should honor the role-based permission system.
+    
+    Args:
+        user_id: ID of the user
+        role_permissions_config: ROLE_PERMISSIONS from app state
+        user_permissions_config: USER_PERMISSIONS from app state (fallback)
+    
+    Returns:
+        Dict containing the appropriate default permissions for the user's role
+    """
+    user = Users.get_user_by_id(user_id)
+    if not user:
+        return user_permissions_config
+    
+    user_role = user.role
+    if user_role in ["user", "premium"]:
+        # Use role-specific permissions if available, fall back to USER_PERMISSIONS
+        return role_permissions_config.get(user_role, user_permissions_config)
+    else:
+        # For admin and other roles, use general USER_PERMISSIONS
+        return user_permissions_config
+
+
 def fill_missing_permissions(
     permissions: Dict[str, Any], default_permissions: Dict[str, Any]
 ) -> Dict[str, Any]:
